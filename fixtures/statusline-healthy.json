@@ -1,0 +1,12 @@
+{
+  "session_id": "fix-sess-1",
+  "context_window": {
+    "used_percentage": 20,
+    "remaining_percentage": 80,
+    "context_window_size": 200000
+  },
+  "model": { "id": "claude-opus-4-8", "display_name": "Opus" },
+  "workspace": { "current_dir": "/proj", "project_dir": "/proj" },
+  "cwd": "/proj",
+  "transcript_path": "/tmp/t.jsonl"
+}

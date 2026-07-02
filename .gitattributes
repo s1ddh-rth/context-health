@@ -1,0 +1,6 @@
+# Normalize line endings to LF in the repository for all text files.
+* text=auto eol=lf
+
+# Explicitly binary-safe / leave alone
+*.png binary
+*.onnx binary

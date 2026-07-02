@@ -1,0 +1,13 @@
+{
+  "name": "context-health",
+  "owner": {
+    "name": "s1ddh-rth"
+  },
+  "plugins": [
+    {
+      "name": "context-health",
+      "source": "./",
+      "description": "Live detection of five context failure modes with a color-coded statusline. Local-first, zero API cost by default."
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "$comment": "Default settings applied on plugin enable. All detector thresholds are provisional defaults from build-spec section 5.6 and are meant to be tuned by the phase 3 eval harness. Never hard-code these in detector logic; read them from here.",
+  "statusLine": {
+    "type": "command",
+    "command": "node \"${CLAUDE_PLUGIN_ROOT}/statusline/statusline.js\""
+  },
+  "enabled": true,
+  "muted": false,
+  "context": {
+    "autocompactBufferTokens": 33000,
+    "defaultWindowSize": 200000
+  },
+  "detectors": {
+    "distraction": {
+      "enabled": true,
+      "recentToolCallWindow": 20,
+      "repetitionRateYellow": 0.30,
+      "repetitionRateRed": 0.50,
+      "contextFillYellow": 50,
+      "contextFillRed": 85
+    },
+    "confusion": {
+      "enabled": true,
+      "recentCallWindow": 10,
+      "activeToolYellow": 30,
+      "toolErrorRateYellow": 0.05,
+      "toolErrorRateRed": 0.10
+    },
+    "goalDrift": {
+      "enabled": false,
+      "rollingActivityTurns": 5,
+      "minTurnsBeforeFiring": 3,
+      "cosineSimilarityYellow": 0.70,
+      "cosineSimilarityRed": 0.50,
+      "weakAnchorMinTokens": 12,
+      "weakAnchorThresholdPenalty": 0.05
+    },
+    "clash": {
+      "enabled": false,
+      "rollingTurnWindow": 10,
+      "clashesPerTurnYellow": 0.10,
+      "clashesPerTurnRed": 0.20
+    },
+    "poisoning": {
+      "enabled": false,
+      "recentWindowTurns": 10,
+      "eventsYellow": 1,
+      "eventsRed": 2
+    }
+  },
+  "paidTier": {
+    "enabled": false,
+    "model": "claude-haiku-4-5-20251001"
+  },
+  "statusline": {
+    "showWhenHealthy": true,
+    "healthyLabel": "ctx ok"
+  }
+}

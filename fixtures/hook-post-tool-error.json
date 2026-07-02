@@ -1,0 +1,9 @@
+{
+  "session_id": "fix-sess-1",
+  "tool_name": "Bash",
+  "tool_input": { "command": "npm run nope" },
+  "tool_output": { "is_error": true, "error": "command failed with exit code 1" },
+  "transcript_path": "/tmp/t.jsonl",
+  "cwd": "/proj",
+  "hook_event_name": "PostToolUse"
+}

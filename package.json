@@ -1,0 +1,11 @@
+{
+  "name": "context-health",
+  "version": "0.1.0",
+  "description": "Context Health Detector for Claude Code — live detection of five context failure modes in the statusline.",
+  "type": "commonjs",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT"
+}

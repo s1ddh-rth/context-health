@@ -1,0 +1,17 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Python / uv (phase 2)
+.venv/
+__pycache__/
+*.pyc
+.uv/
+
+# Local state / scratch
+*.local.json
+context-health-state.json
+
+# OS
+.DS_Store
+Thumbs.db

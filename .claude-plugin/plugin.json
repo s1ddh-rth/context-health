@@ -1,0 +1,17 @@
+{
+  "name": "context-health",
+  "version": "0.1.0",
+  "description": "Detects five context failure modes (distraction, confusion, goal-drift, clash, poisoning) live and shows a color-coded health signal in the statusline. Local-first, zero API cost by default.",
+  "author": {
+    "name": "s1ddh-rth"
+  },
+  "repository": "https://github.com/s1ddh-rth/context-health",
+  "license": "MIT",
+  "keywords": [
+    "context",
+    "health",
+    "statusline",
+    "observability",
+    "drift"
+  ]
+}

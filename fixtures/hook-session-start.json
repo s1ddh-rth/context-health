@@ -1,0 +1,7 @@
+{
+  "session_id": "fix-sess-1",
+  "source": "startup",
+  "transcript_path": "/tmp/t.jsonl",
+  "cwd": "/proj",
+  "hook_event_name": "SessionStart"
+}
