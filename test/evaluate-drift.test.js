@@ -62,6 +62,17 @@ test('opt-in contradiction is not surfaced while disabled even if computed', () 
   assert.equal(r.severity, 'green');
 });
 
+test('contradiction IS surfaced once enabled in config', () => {
+  const s = defaultSessionState('s');
+  s.computed.contradiction = { severity: 'red', reason: 'tabs vs spaces' };
+  const cfg = Object.assign({}, CONFIG, {
+    detectors: Object.assign({}, CONFIG.detectors, { contradiction: { enabled: true } }),
+  });
+  const r = evaluate(s, { fillPercent: 10 }, cfg);
+  assert.equal(r.severity, 'red');
+  assert.equal(r.worst.condition, 'contradiction');
+});
+
 test('render shows a friendly "goal drift" label, not the camelCase key', () => {
   const r = evaluate(withDrift('red', 'drifting from goal (40% similar)'), { fillPercent: 10 }, CONFIG);
   const line = render(r, { color: false });

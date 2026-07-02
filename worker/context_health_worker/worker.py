@@ -25,8 +25,10 @@ MAX_GOAL_CACHE = 64
 
 from . import state_io
 from .config import load_config
+from .contradiction import evaluate_contradiction
 from .drift import build_activity_text, cosine_similarity, evaluate_drift
 from .embedder import Embedder
+from .judge import make_judge
 
 
 def _word_count(text):
@@ -80,12 +82,24 @@ def compute_session_drift(session, embedder, drift_cfg, goal_cache):
     return result
 
 
-def run_once(embedder, config, goal_cache, seen_turns, last_severity):
-    """One pass over all sessions. Returns a list of notification lines (for
-    sessions that just went red). Mutates seen_turns and last_severity."""
-    drift_cfg = (config.get("detectors") or {}).get("goalDrift") or {}
-    if drift_cfg.get("enabled") is False:
+def run_once(embedder, config, goal_cache, seen_turns, last_severity,
+             judge=None, contra_state=None):
+    """One pass over all sessions. Returns notification lines for sessions that
+    just went red on any detector. Drift and contradiction are handled
+    independently per session so neither blocks the other."""
+    detectors = config.get("detectors") or {}
+    drift_cfg = detectors.get("goalDrift") or {}
+    contra_cfg = detectors.get("contradiction") or {}
+    drift_on = drift_cfg.get("enabled") is not False
+    contra_on = contra_cfg.get("enabled") is True and judge is not None
+
+    if not drift_on and not contra_on:
         return []
+
+    if contra_state is None:
+        contra_state = {}
+    contra_seen = contra_state.setdefault("seen", {})
+    contra_sev = contra_state.setdefault("sev", {})
 
     notifications = []
     all_state = state_io.load_state()
@@ -94,42 +108,58 @@ def run_once(embedder, config, goal_cache, seen_turns, last_severity):
         if not isinstance(session, dict):
             continue
         turn = session.get("turnCount") or 0
-        # Skip if this session hasn't advanced since we last processed it.
-        if seen_turns.get(session_id) == turn and session_id in last_severity:
-            continue
 
-        result = compute_session_drift(session, embedder, drift_cfg, goal_cache)
-        if result is None:
+        # --- goal drift ---
+        if drift_on and not (seen_turns.get(session_id) == turn and session_id in last_severity):
+            result = compute_session_drift(session, embedder, drift_cfg, goal_cache)
+            if result is not None:
+                state_io.update_session(session_id, _make_computed_writer("goalDrift", result))
+                prev = _prev_severity(session, last_severity, session_id, "goalDrift")
+                last_severity[session_id] = result["severity"]
+                if result["severity"] == "red" and prev != "red":
+                    notifications.append(
+                        f"Context health: goal-drift — {result['reason']}. "
+                        "Restate the goal or start fresh."
+                    )
             seen_turns[session_id] = turn
-            continue
 
-        state_io.update_session(session_id, _make_drift_writer(result))
-        seen_turns[session_id] = turn
-
-        if session_id in last_severity:
-            prev = last_severity[session_id]
-        else:
-            # First time this process sees the session (e.g. after a monitor
-            # restart): baseline from the severity we last persisted, so we don't
-            # re-notify a red that already fired in a previous run.
-            persisted = ((session.get("computed") or {}).get("goalDrift") or {})
-            prev = persisted.get("severity") or "green"
-        last_severity[session_id] = result["severity"]
-        if result["severity"] == "red" and prev != "red":
-            notifications.append(
-                f"Context health: goal-drift — {result['reason']}. "
-                "Restate the goal or start fresh."
-            )
+        # --- contradiction (opt-in, throttled — it spends the user's tokens) ---
+        if contra_on:
+            gap = _num(contra_cfg.get("minTurnsBetweenChecks"), 3)
+            last_checked = contra_seen.get(session_id)
+            due = last_checked is None or (turn - last_checked) >= gap
+            if due and turn >= 2:
+                verdict = evaluate_contradiction(session, judge)
+                contra_seen[session_id] = turn
+                if verdict is not None:
+                    state_io.update_session(session_id, _make_computed_writer("contradiction", verdict))
+                    prev = contra_sev.get(session_id) or (
+                        (session.get("computed") or {}).get("contradiction") or {}
+                    ).get("severity") or "green"
+                    contra_sev[session_id] = verdict["severity"]
+                    if verdict["severity"] == "red" and prev != "red":
+                        notifications.append(
+                            f"Context health: contradiction — {verdict['reason']}. "
+                            "Resolve the conflicting facts before continuing."
+                        )
 
     return notifications
 
 
-def _make_drift_writer(result):
+def _prev_severity(session, last_severity, session_id, field):
+    if session_id in last_severity:
+        return last_severity[session_id]
+    # First sight this process (e.g. after a monitor restart): baseline from the
+    # last persisted severity so we don't re-notify an already-fired red.
+    return ((session.get("computed") or {}).get(field) or {}).get("severity") or "green"
+
+
+def _make_computed_writer(field, result):
     def writer(s):
         computed = s.get("computed")
         if not isinstance(computed, dict):
             computed = {}
-        computed["goalDrift"] = result
+        computed[field] = result
         s["computed"] = computed
         return s
 
@@ -142,6 +172,19 @@ def _num(value, default):
     return default
 
 
+def _get_judge(config, holder):
+    """Build the contradiction judge lazily, and rebuild only if the relevant
+    config changed. Returns None when contradiction is disabled."""
+    contra_cfg = (config.get("detectors") or {}).get("contradiction") or {}
+    if contra_cfg.get("enabled") is not True:
+        return None
+    key = (contra_cfg.get("judge"), contra_cfg.get("model"), contra_cfg.get("endpoint"))
+    if holder.get("built_for") != key:
+        holder["judge"] = make_judge(contra_cfg)
+        holder["built_for"] = key
+    return holder.get("judge")
+
+
 def main(argv=None):
     config = load_config()
     worker_cfg = config.get("worker") or {}
@@ -152,6 +195,8 @@ def main(argv=None):
     goal_cache = {}
     seen_turns = {}
     last_severity = {}
+    contra_state = {}
+    judge_holder = {"built_for": None, "judge": None}
 
     # Warm the model once up front (so the first real turn isn't slow). If it
     # fails, keep running — drift just stays disabled.
@@ -160,7 +205,9 @@ def main(argv=None):
     while True:
         try:
             config = load_config()
-            notes = run_once(embedder, config, goal_cache, seen_turns, last_severity)
+            judge = _get_judge(config, judge_holder)
+            notes = run_once(embedder, config, goal_cache, seen_turns, last_severity,
+                             judge=judge, contra_state=contra_state)
             for line in notes:
                 print(line, flush=True)
         except Exception:

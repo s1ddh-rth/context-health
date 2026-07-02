@@ -46,8 +46,10 @@ const BUILT_IN_DEFAULTS = {
       enabled: true,
       rollingActivityTurns: 5,
       minTurnsBeforeFiring: 3,
-      cosineSimilarityYellow: 0.70,
-      cosineSimilarityRed: 0.50,
+      // Calibrated from eval/drift-pairs.json (worker/eval_drift.py): the spec
+      // default 0.70 produced a 43% false-alarm rate; precision-first rec ~0.55.
+      cosineSimilarityYellow: 0.60,
+      cosineSimilarityRed: 0.45,
       weakAnchorMinTokens: 12,
       weakAnchorThresholdPenalty: 0.05,
     },
@@ -57,10 +59,8 @@ const BUILT_IN_DEFAULTS = {
     contradiction: {
       enabled: false,
       judge: 'byok',
-      model: 'claude-haiku-4-5-20251001',
-      rollingTurnWindow: 10,
-      eventsYellow: 1,
-      eventsRed: 2,
+      model: 'claude-haiku-4-5',
+      minTurnsBetweenChecks: 3,
     },
   },
   statusline: {

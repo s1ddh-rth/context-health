@@ -52,8 +52,8 @@ def evaluate_drift(similarity, turn_count, config, weak_anchor=False):
     """
     cfg = config or {}
     min_turns = _num(cfg.get("minTurnsBeforeFiring"), 3)
-    yellow = _num(cfg.get("cosineSimilarityYellow"), 0.70)
-    red = _num(cfg.get("cosineSimilarityRed"), 0.50)
+    yellow = _num(cfg.get("cosineSimilarityYellow"), 0.60)
+    red = _num(cfg.get("cosineSimilarityRed"), 0.45)
     penalty = _num(cfg.get("weakAnchorThresholdPenalty"), 0.05)
 
     if weak_anchor:

@@ -18,11 +18,11 @@ API key or a local model).
 > false-alarm-prone heuristics. Distraction, confusion, and goal-drift each keep a
 > distinct, independently-calculable signal.
 
-> **Status: Phase 2 shipped.** Corrected context math + distraction + confusion
-> (Phase 1) run locally with no model. **Goal-drift** (Phase 2) adds a local
-> FastEmbed model in a warm worker — still zero API cost, still offline after the
-> one-time model download. The opt-in contradiction detector and the eval harness
-> land in Phase 3 — see [Roadmap](#roadmap).
+> **Status: Phase 3 shipped.** Distraction + confusion (Phase 1) and goal-drift
+> (Phase 2) run locally with no API cost. Phase 3 adds the **eval harness** (the
+> credibility layer — measured precision/recall, not just token counts),
+> data-calibrated thresholds, **plain-language config slash commands**, and the
+> opt-in **contradiction** detector. See [Roadmap](#roadmap).
 
 ---
 
@@ -114,9 +114,12 @@ context-health/
 ├── bin/
 │   ├── hooks/            one thin entry script per hook
 │   └── lib/              tested pure logic (detectors, math, state, config)
+├── skills/               plain-language config slash commands
 ├── worker/               Python warm worker (uv-managed, isolated .venv)
-│   ├── context_health_worker/   embedder, drift, state_io, config, worker
+│   ├── context_health_worker/   embedder, drift, contradiction, judge, worker
+│   ├── eval_drift.py     goal-drift threshold calibrator (real model)
 │   └── tests/            pytest suite
+├── eval/                 eval harness — metrics, labeled corpus, runner
 ├── settings.json         default config incl. all tunable thresholds
 ├── fixtures/             mock stdin payloads for testing scripts
 └── test/                 node:test unit + integration tests
@@ -151,6 +154,52 @@ Key knobs (`detectors.distraction`, `detectors.confusion`):
 `enabled: false` silences the plugin entirely; `muted: true` (global or
 per-session) keeps the ambient fill but suppresses warnings.
 
+### Slash commands (no JSON editing)
+
+Config is plain-language slash commands — they write to your user override file,
+never to plugin files:
+
+| Command | Does |
+|---|---|
+| `/context-health:status` | show current detectors + thresholds |
+| `/context-health:set-threshold <detector> <key> <value>` | tune a threshold (e.g. make goal-drift less sensitive) |
+| `/context-health:mute` / `mute off` | silence warnings this session (fill still shows) |
+| `/context-health:reset-goal` | re-anchor goal-drift; your next prompt becomes the new goal |
+| `/context-health:toggle-contradiction on\|off` | enable the opt-in contradiction detector |
+
+### The contradiction detector (opt-in, off by default)
+
+Research showed clash and poisoning collapse to one computation — contradiction
+detection — that local heuristics can't do precisely. So it's a single opt-in
+detector that, when enabled, runs an LLM judge on **your own** Claude API key
+(the official SDK resolves your existing credentials — nothing to paste) or a
+**local** model. It is never billed by this plugin, off by default, and
+throttled. The API-key judge needs a one-time `cd worker && uv sync --extra
+contradiction`; a local model needs no install.
+
+## Proving it works — the eval harness
+
+Everyone counts tokens; nobody proves their detector is right. This one does.
+
+```
+node eval/run-eval.js                       # per-detector precision / recall / FPR + confusion matrix
+uv run --directory worker python eval_drift.py   # calibrate goal-drift thresholds on labeled pairs
+```
+
+The eval runner feeds a labeled fixture corpus through the **production**
+detectors and reports precision, recall, F0.5 (precision-weighted), and the
+false-positive rate per detector — the numbers a precision-first product lives
+and dies on. The drift calibrator scores labeled on-goal/drifted pairs with the
+real embedding model and recommends thresholds; that's how the provisional
+spec defaults (0.70/0.50) became the calibrated 0.60/0.45 — the 0.70 default had
+a **43% false-alarm rate** on the labeled set.
+
+The labeled set is small (~30 pairs) and its drifted examples are clear topic
+changes, not the gradual, domain-adjacent drift of real sessions — so treat
+0.60/0.45 as *better-calibrated defaults, still tunable*, not a final answer.
+Grow `eval/drift-pairs.json` with real-transcript pairs and re-run the
+calibrator to refine them (they're a `/context-health:set-threshold` away).
+
 ---
 
 ## Development
@@ -178,13 +227,37 @@ transcript/tool output is treated as untrusted text, never executed.
 
 - **Phase 1 — plumbing + free wins** *(done)*: scaffold, corrected context math,
   distraction + confusion detectors. Zero cost.
-- **Phase 2 — the lead feature**: local FastEmbed embedding model in a warm
-  worker, goal-drift detector.
-- **Phase 3 — rigor + the opt-in detector**: eval harness (labeled corpus,
-  LLM-judge scoring, adversarial threshold calibration), then the opt-in
-  **contradiction** detector (LLM-judge on your own key or a local model, off by
-  default) behind a slash command.
+- **Phase 2 — the lead feature** *(done)*: local FastEmbed embedding model in a
+  warm worker, goal-drift detector.
+- **Phase 3 — rigor + the opt-in detector** *(done)*: eval harness (labeled
+  corpus, precision/recall/FPR metrics, threshold calibration), config slash
+  commands, and the opt-in **contradiction** detector (LLM-judge on your own key
+  or a local model, off by default).
 - **Phase 4 — reach**: desktop-app port, optional MCP companion.
+
+## Known limitations
+
+These are Claude Code version-dependent behaviors, not bugs in this plugin — the
+plugin degrades gracefully in each case:
+
+- **The warm worker may not auto-start on some Claude Code versions.** Plugin
+  background monitors have been reported to silently fail to arm on certain
+  releases. If the statusline never shows goal-drift (it stays green even when
+  you've clearly changed topic), the worker probably isn't running. Start it
+  manually — it's the same command the monitor uses:
+
+  ```
+  uv run --directory "<plugin-dir>/worker" python -m context_health_worker.worker
+  ```
+
+  (`<plugin-dir>` is the installed plugin path, i.e. `${CLAUDE_PLUGIN_ROOT}`.)
+  Distraction, confusion, and the context math all work without the worker.
+
+- **Config slash commands are marked user-only** (`disable-model-invocation`),
+  but some Claude Code versions ignore that flag for *plugin* skills, so the
+  model could invoke them from context. All of them are reversible and low-harm
+  (mute, tune a threshold, reset the goal, toggle the off-by-default detector);
+  none touch your code or data.
 
 ## License
 

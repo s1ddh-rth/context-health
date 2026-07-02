@@ -1,0 +1,92 @@
+[
+  {
+    "name": "healthy-baseline",
+    "build": { "toolCalls": [{ "name": "Read", "input": { "f": "a" } }, { "name": "Grep", "input": { "p": "x" } }] },
+    "liveMetrics": { "fillPercent": 20 },
+    "expected": { "distraction": "green", "confusion": "green", "overall": "green" }
+  },
+  {
+    "name": "distraction-repetition-red",
+    "build": { "toolCalls": [{ "name": "Grep", "input": { "p": "same" }, "repeat": 20 }] },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "distraction": "red", "confusion": "green", "overall": "red" }
+  },
+  {
+    "name": "distraction-repetition-yellow",
+    "build": { "toolCalls": [{ "name": "A", "repeat": 5 }, { "name": "B" }, { "name": "C" }, { "name": "D" }, { "name": "E" }] },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "distraction": "yellow", "overall": "yellow" }
+  },
+  {
+    "name": "distraction-fill-yellow",
+    "build": { "toolCalls": [{ "name": "Read" }] },
+    "liveMetrics": { "fillPercent": 60 },
+    "expected": { "distraction": "yellow", "confusion": "green", "overall": "yellow" }
+  },
+  {
+    "name": "distraction-fill-red",
+    "build": { "toolCalls": [{ "name": "Read" }] },
+    "liveMetrics": { "fillPercent": 90 },
+    "expected": { "distraction": "red", "overall": "red" }
+  },
+  {
+    "name": "distraction-fill-boundary-50-green",
+    "build": { "toolCalls": [{ "name": "Read" }] },
+    "liveMetrics": { "fillPercent": 50 },
+    "expected": { "distraction": "green", "overall": "green" }
+  },
+  {
+    "name": "confusion-tools-yellow",
+    "build": { "distinctTools": 31 },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "confusion": "yellow", "distraction": "green", "overall": "yellow" }
+  },
+  {
+    "name": "confusion-tools-boundary-30-green",
+    "build": { "distinctTools": 30 },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "confusion": "green", "overall": "green" }
+  },
+  {
+    "name": "confusion-error-yellow",
+    "build": { "toolResults": [{ "error": true, "repeat": 1 }, { "error": false, "repeat": 9 }] },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "confusion": "yellow", "overall": "yellow" }
+  },
+  {
+    "name": "confusion-error-red",
+    "build": { "toolResults": [{ "error": true, "repeat": 3 }, { "error": false, "repeat": 7 }] },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "confusion": "red", "overall": "red" }
+  },
+  {
+    "name": "confusion-clean-green",
+    "build": { "toolResults": [{ "error": false, "repeat": 10 }], "distinctTools": 12 },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "confusion": "green", "overall": "green" }
+  },
+  {
+    "name": "goaldrift-red",
+    "build": { "computed": { "goalDrift": { "severity": "red", "reason": "drifting from goal (40% similar)" } } },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "goalDrift": "red", "distraction": "green", "confusion": "green", "overall": "red" }
+  },
+  {
+    "name": "goaldrift-yellow",
+    "build": { "computed": { "goalDrift": { "severity": "yellow", "reason": "drifting from goal (63% similar)" } } },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "goalDrift": "yellow", "overall": "yellow" }
+  },
+  {
+    "name": "goaldrift-green",
+    "build": { "computed": { "goalDrift": { "severity": "green", "reason": "on goal" } } },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "goalDrift": "green", "overall": "green" }
+  },
+  {
+    "name": "combined-worst-wins-red",
+    "build": { "distinctTools": 31, "computed": { "goalDrift": { "severity": "red", "reason": "drifting" } } },
+    "liveMetrics": { "fillPercent": 60 },
+    "expected": { "confusion": "yellow", "distraction": "yellow", "goalDrift": "red", "overall": "red" }
+  }
+]

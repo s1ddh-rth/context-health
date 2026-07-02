@@ -12,6 +12,11 @@ dependencies = [
 dev = [
     "pytest>=8.0",
 ]
+# Opt-in only: the contradiction detector's BYOK judge uses the official SDK,
+# which resolves the user's own credentials. `uv sync --extra contradiction`.
+contradiction = [
+    "anthropic>=0.40",
+]
 
 [build-system]
 requires = ["hatchling"]

@@ -6,6 +6,13 @@ Version 0.1 (working draft). All mechanics below were verified against current C
 
 ---
 
+> **⚠️ Scope updated after this draft — read `CLAUDE.md` for the current design.** Two decisions supersede the text below:
+> 1. **Four detectors, not five.** Research showed *clash* and *poisoning* collapse to the same local computation (contradiction detection), so they are merged into one **contradiction** detector. Everywhere this spec says "five failure modes" / "five detectors" / describes separate clash and poisoning heuristics (esp. §2.1, §5, §5.6, §13), treat it as historical — build the four: distraction, confusion, goal-drift, contradiction.
+> 2. **Fully open-source, no paid tier.** The "opt-in paid tier" framing is dropped. The contradiction detector is opt-in and off by default; when enabled it runs an LLM judge on the *user's own* API key or a local model — never billed by this plugin.
+> 3. **Path variable:** for a *plugin*, bundled script paths use `${CLAUDE_PLUGIN_ROOT}`, not `$CLAUDE_PROJECT_DIR` (see §9). The code is correct; the older prose in §9 is not.
+
+---
+
 ## 1. What this is, in one paragraph
 
 Everyone building on Claude Code today can see how *full* their context is. Nobody can see whether it has gone *bad*. This tool closes that gap. It classifies five distinct failure conditions as they happen (poisoning, distraction, confusion, clash, and goal-drift), tracks six underlying variables, and renders a color-coded health signal in the statusline that stays silent until something is actually wrong. The cheap detectors run on local heuristics and a small local embedding model with no API calls. The expensive semantic detector is opt-in and off by default, which is what keeps token cost flat for the normal user.
@@ -206,7 +213,9 @@ const autocompactBufferPct = (AUTOCOMPACT_BUFFER_TOKENS / windowSize) * 100;
 const freeUntilCompact = Math.max(0, pctRemainTotal - autocompactBufferPct);
 ```
 
-Also use the `$CLAUDE_PROJECT_DIR` prefix for all hook and statusline script paths, or a bare relative path throws a module-not-found error once the working directory moves into a subdirectory.
+> **Implementation note (supersedes the snippet above).** `bin/lib/context-math.js` reports fill against the *usable* window instead: `fillPercent = usedTokens / (windowSize - buffer) * 100`, which reaches 100% exactly at the autocompact boundary (the sketch above never reaches 100%). That is the number the statusline and distraction detector consume.
+
+Also use the `${CLAUDE_PLUGIN_ROOT}` prefix for all bundled hook, statusline, monitor, and skill script paths — a bare relative path throws a module-not-found error once the working directory moves, and `$CLAUDE_PROJECT_DIR` points at the user's project rather than the installed plugin.
 
 ---
 

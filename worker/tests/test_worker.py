@@ -152,6 +152,55 @@ def test_run_once_does_not_renotify_red_after_restart(state_path):
     assert notes == []
 
 
+CONTRA_CONFIG = {
+    "detectors": {
+        "goalDrift": {**DRIFT_CFG},
+        "contradiction": {"enabled": True, "minTurnsBetweenChecks": 3},
+    }
+}
+
+
+def fake_judge_red(prompt):
+    return '{"contradiction": true, "severity": "red", "reason": "tabs vs spaces"}'
+
+
+def test_run_once_contradiction_writes_and_notifies(state_path):
+    s = make_session(prompts=["always use tabs", "never use tabs, use spaces"], turn=5)
+    _seed(state_path, s)
+    emb = FakeEmbedder(s["goalText"], [1, 0], [1, 0])  # drift green
+    notes = worker.run_once(emb, CONTRA_CONFIG, {}, {}, {}, judge=fake_judge_red, contra_state={})
+    saved = state_io.load_state()["s1"]
+    assert saved["computed"]["contradiction"]["severity"] == "red"
+    assert any("contradiction" in n for n in notes)
+
+
+def test_run_once_contradiction_is_throttled(state_path):
+    s = make_session(prompts=["a", "b", "c"], turn=5)
+    _seed(state_path, s)
+    emb = FakeEmbedder(s["goalText"], [1, 0], [1, 0])
+    calls = {"n": 0}
+
+    def counting_judge(prompt):
+        calls["n"] += 1
+        return '{"contradiction": false, "severity": "green"}'
+
+    contra_state = {}
+    worker.run_once(emb, CONTRA_CONFIG, {}, {}, {}, judge=counting_judge, contra_state=contra_state)
+    assert calls["n"] == 1
+    # same turn again -> within throttle gap -> judge not called again
+    worker.run_once(emb, CONTRA_CONFIG, {}, {}, {}, judge=counting_judge, contra_state=contra_state)
+    assert calls["n"] == 1
+
+
+def test_run_once_contradiction_disabled_when_no_judge(state_path):
+    s = make_session(prompts=["a", "b", "c"], turn=5)
+    _seed(state_path, s)
+    emb = FakeEmbedder(s["goalText"], [1, 0], [1, 0])
+    worker.run_once(emb, CONTRA_CONFIG, {}, {}, {}, judge=None, contra_state={})
+    saved = state_io.load_state()["s1"]
+    assert saved.get("computed", {}).get("contradiction") in (None, {})
+
+
 def test_run_once_reprocesses_after_turn_advances(state_path):
     _seed(state_path, make_session(turn=5))
     goal = make_session()["goalText"]

@@ -20,11 +20,19 @@ BUILT_IN_DEFAULTS = {
             "enabled": True,
             "rollingActivityTurns": 5,
             "minTurnsBeforeFiring": 3,
-            "cosineSimilarityYellow": 0.70,
-            "cosineSimilarityRed": 0.50,
+            # Calibrated from eval/drift-pairs.json (eval_drift.py); spec default
+            # 0.70 gave a 43% false-alarm rate, precision-first rec ~0.55.
+            "cosineSimilarityYellow": 0.60,
+            "cosineSimilarityRed": 0.45,
             "weakAnchorMinTokens": 12,
             "weakAnchorThresholdPenalty": 0.05,
-        }
+        },
+        "contradiction": {
+            "enabled": False,  # opt-in
+            "judge": "byok",
+            "model": "claude-haiku-4-5",
+            "minTurnsBetweenChecks": 3,  # throttle: it spends the user's tokens
+        },
     },
     "worker": {"pollIntervalSeconds": 1.5, "embeddingModel": "BAAI/bge-small-en-v1.5"},
 }

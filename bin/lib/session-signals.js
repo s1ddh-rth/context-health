@@ -94,7 +94,10 @@ function isErrorOutput(output) {
 // Push a worker-computed detector result into the roll-up list, unless the
 // detector is disabled in config or the worker hasn't produced a result yet.
 function addComputed(results, condition, detectorCfg, computedField) {
-  if (detectorCfg && detectorCfg.enabled === false) return;
+  // Fail closed: a worker-computed detector is surfaced only when its config
+  // block is present AND not disabled. An absent block means "off" — important
+  // for the opt-in contradiction detector, so a partial config never surfaces it.
+  if (!detectorCfg || detectorCfg.enabled === false) return;
   if (!computedField || !computedField.severity) return;
   results.push({ condition, severity: computedField.severity, reason: computedField.reason });
 }
