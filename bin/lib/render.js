@@ -21,6 +21,12 @@ const COLORS = {
 
 const DOT = '●'; // ●
 
+// Friendly display names for conditions whose internal key isn't presentable.
+const CONDITION_LABELS = {
+  goalDrift: 'goal drift',
+  contradiction: 'contradiction',
+};
+
 function colorize(text, color, enabled) {
   if (!enabled) return text;
   const code = COLORS[color];
@@ -47,7 +53,8 @@ function render(result, opts) {
   }
 
   const worst = r.worst && typeof r.worst === 'object' ? r.worst : {};
-  const condition = worst.condition || 'context';
+  const rawCondition = worst.condition || 'context';
+  const condition = CONDITION_LABELS[rawCondition] || rawCondition;
   const reason = worst.reason ? `: ${worst.reason}` : '';
   const text = `${DOT} ${condition}${reason}`;
   return colorize(text, severity, color);

@@ -1,9 +1,11 @@
 # CLAUDE.md — Context Health Detector for Claude Code
 
-Build a Claude Code **plugin** that detects five context failure modes live and shows a color-coded health signal in the statusline. Local-first, zero API cost by default. Full detail is in `context-health-plugin-build-spec.md`. Read it before starting a phase. This file is only the rules you must not get wrong.
+Build a Claude Code **plugin** that detects context failure modes live and shows a color-coded health signal in the statusline. Local-first, zero API cost by default. **Fully open-source — no paid tiering.** Full detail is in `context-health-plugin-build-spec.md`. Read it before starting a phase. This file is only the rules you must not get wrong.
 
 ## What it does
-Detects distraction, confusion, goal-drift, clash, poisoning. Tracks six variables (context fill percent, turns since goal set, drift distance, active tool count, repetition rate, contradiction count). Stays silent until something is wrong.
+Detects **four** conditions: distraction, confusion, goal-drift, and contradiction. (Clash and poisoning were merged into one **contradiction** detector — research showed they collapse to the same local computation; see the memory `detector-scope-decision`.) Tracks context fill percent, turns since goal set, drift distance, active tool count, repetition rate, and contradiction count. Stays silent until something is wrong.
+
+The **contradiction** detector is opt-in and OFF by default; when enabled it uses the user's own Claude API key or a local LLM for real NLI-style detection (zero cost until turned on — never a billed tier). It lands in Phase 3. Do not ship a noisy local contradiction heuristic.
 
 ## Non-negotiable architecture
 - It is a plugin, not an MCP server. Use hooks, statusline, and a plugin monitor.
@@ -25,9 +27,9 @@ Detects distraction, confusion, goal-drift, clash, poisoning. Tracks six variabl
 - Detector formulas and starting thresholds live in spec section 5.6. They are provisional defaults. Put them in `settings.json` so they are tunable. Never hard-code them in detector logic. Real values come from the phase 3 eval harness.
 
 ## Build order (ship each phase working before the next)
-1. Plugin scaffold, state file, Node statusline with corrected context math, distraction and confusion detectors. No embeddings yet. Fully working, zero cost.
-2. Warm worker with FastEmbed, goal-drift detector, heuristic clash and poisoning. Goal is captured at SessionStart from the first prompt.
-3. Eval harness (labeled fixtures, LLM-judge scoring, three adversarial threshold calibrations), then opt-in paid LLM-judge tier behind a slash command.
+1. Plugin scaffold, state file, Node statusline with corrected context math, distraction and confusion detectors. No embeddings yet. Fully working, zero cost. **(shipped)**
+2. Warm worker with FastEmbed, goal-drift detector. Goal is captured at SessionStart from the first prompt. (Heuristic clash/poisoning dropped — merged into the opt-in contradiction detector in phase 3.)
+3. Eval harness (labeled fixtures, LLM-judge scoring, three adversarial threshold calibrations), then the opt-in contradiction detector (LLM-judge via the user's own key or a local model — off by default, not billed) behind a slash command.
 4. Desktop-app port, optional MCP companion.
 
 ## Data sources (quick reference)
@@ -36,7 +38,7 @@ Detects distraction, confusion, goal-drift, clash, poisoning. Tracks six variabl
 - Full conversation. The JSONL at `transcript_path`. Track a byte offset, read only new lines.
 
 ## Config and toggle
-Slash commands (as skills) for toggle paid tier, set thresholds, reset goal, mute session. Defaults ship in `settings.json` and apply on enable. Never require the user to edit JSON.
+Slash commands (as skills) for toggle the opt-in contradiction detector, set thresholds, reset goal, mute session. Defaults ship in `settings.json` and apply on enable. Never require the user to edit JSON.
 
 ## Scope discipline
-Do not overbuild. Phase 1 must beat a plain token counter and nothing more. Do not add the paid tier until the eval harness exists. Precision over recall everywhere. A false alarm is worse than a miss.
+Do not overbuild. Phase 1 must beat a plain token counter and nothing more. Do not add the opt-in contradiction/LLM-judge detector until the eval harness exists. No paid tiering — the project is open-source; any LLM-judge runs on the user's own key or a local model, off by default. Precision over recall everywhere. A false alarm is worse than a miss.

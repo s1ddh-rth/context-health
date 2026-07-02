@@ -7,7 +7,7 @@
     {
       "name": "context-health",
       "source": "./",
-      "description": "Live detection of five context failure modes with a color-coded statusline. Local-first, zero API cost by default."
+      "description": "Live detection of context failure modes (distraction, confusion, goal-drift, and an opt-in contradiction check) with a color-coded statusline. Local-first, zero API cost by default, fully open-source."
     }
   ]
 }

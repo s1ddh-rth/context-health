@@ -91,6 +91,14 @@ function isErrorOutput(output) {
   return false;
 }
 
+// Push a worker-computed detector result into the roll-up list, unless the
+// detector is disabled in config or the worker hasn't produced a result yet.
+function addComputed(results, condition, detectorCfg, computedField) {
+  if (detectorCfg && detectorCfg.enabled === false) return;
+  if (!computedField || !computedField.severity) return;
+  results.push({ condition, severity: computedField.severity, reason: computedField.reason });
+}
+
 // --- detector evaluation (called from statusline) ---
 
 function evaluate(s, liveMetrics, config) {
@@ -112,6 +120,14 @@ function evaluate(s, liveMetrics, config) {
     { condition: 'distraction', severity: distraction.severity, reason: distraction.reason },
     { condition: 'confusion', severity: confusion.severity, reason: confusion.reason },
   ];
+
+  // Semantic detectors are computed out-of-band by the worker and stored in
+  // s.computed. Surface each one only if it is enabled in config and the worker
+  // has actually written a result (so nothing shows before the worker runs, or
+  // if the worker/model is unavailable).
+  const computed = (s && s.computed) || {};
+  addComputed(detectorResults, 'goalDrift', cfg.goalDrift, computed.goalDrift);
+  addComputed(detectorResults, 'contradiction', cfg.contradiction, computed.contradiction);
 
   const rolled = rollup(detectorResults);
   return {

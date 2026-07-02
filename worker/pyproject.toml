@@ -1,0 +1,24 @@
+[project]
+name = "context-health-worker"
+version = "0.1.0"
+description = "Warm worker for the Context Health Detector: keeps a local FastEmbed model loaded and computes goal-drift out of band."
+requires-python = ">=3.10"
+dependencies = [
+    "fastembed>=0.4.0",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["context_health_worker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

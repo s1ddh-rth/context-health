@@ -41,10 +41,9 @@ function defaultSessionState(sessionId) {
     activeTools: [], // distinct tool names seen this session
     prompts: [], // recent user prompts (bounded) — feeds phase-2 drift window
     computed: {
-      // written only by the phase-2 worker
-      goalDrift: null,
-      clash: null,
-      poisoning: null,
+      // written only by the worker
+      goalDrift: null, // phase 2
+      contradiction: null, // phase 3 (opt-in)
     },
   };
 }

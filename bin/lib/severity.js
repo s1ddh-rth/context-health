@@ -18,8 +18,7 @@ const SUGGESTED_ACTION = {
   distraction: 'compact now or start a fresh session and reload',
   confusion: 'reduce active tools or restart with a leaner tool set',
   goalDrift: 'restate the goal or start fresh — the session has drifted',
-  clash: 'resolve the contradiction before continuing',
-  poisoning: 'a false fact is being reused — start fresh and reload facts',
+  contradiction: 'resolve the conflicting facts before continuing',
 };
 
 function rank(sev) {

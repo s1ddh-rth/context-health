@@ -1,7 +1,7 @@
 {
   "name": "context-health",
   "version": "0.1.0",
-  "description": "Detects five context failure modes (distraction, confusion, goal-drift, clash, poisoning) live and shows a color-coded health signal in the statusline. Local-first, zero API cost by default.",
+  "description": "Detects context failure modes (distraction, confusion, goal-drift, and an opt-in contradiction check) live and shows a color-coded health signal in the statusline. Local-first, zero API cost by default, fully open-source.",
   "author": {
     "name": "s1ddh-rth"
   },
@@ -13,5 +13,8 @@
     "statusline",
     "observability",
     "drift"
-  ]
+  ],
+  "experimental": {
+    "monitors": "./monitors/monitors.json"
+  }
 }

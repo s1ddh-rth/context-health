@@ -34,7 +34,7 @@ test('rollup: any red beats yellow', () => {
 test('rollup: worst pick is stable — first-listed wins on a tie', () => {
   const r = rollup([
     { condition: 'distraction', severity: 'red', reason: 'a' },
-    { condition: 'poisoning', severity: 'red', reason: 'b' },
+    { condition: 'contradiction', severity: 'red', reason: 'b' },
   ]);
   assert.equal(r.worst.condition, 'distraction');
 });

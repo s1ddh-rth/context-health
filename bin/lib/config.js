@@ -43,7 +43,7 @@ const BUILT_IN_DEFAULTS = {
       toolErrorRateRed: 0.10,
     },
     goalDrift: {
-      enabled: false,
+      enabled: true,
       rollingActivityTurns: 5,
       minTurnsBeforeFiring: 3,
       cosineSimilarityYellow: 0.70,
@@ -51,22 +51,17 @@ const BUILT_IN_DEFAULTS = {
       weakAnchorMinTokens: 12,
       weakAnchorThresholdPenalty: 0.05,
     },
-    clash: {
+    // Merged clash+poisoning. Opt-in, OFF by default; when enabled it uses the
+    // user's own API key or a local LLM (no paid tier — the project is
+    // open-source). Lands in Phase 3.
+    contradiction: {
       enabled: false,
+      judge: 'byok',
+      model: 'claude-haiku-4-5-20251001',
       rollingTurnWindow: 10,
-      clashesPerTurnYellow: 0.10,
-      clashesPerTurnRed: 0.20,
-    },
-    poisoning: {
-      enabled: false,
-      recentWindowTurns: 10,
       eventsYellow: 1,
       eventsRed: 2,
     },
-  },
-  paidTier: {
-    enabled: false,
-    model: 'claude-haiku-4-5-20251001',
   },
   statusline: {
     showWhenHealthy: true,
