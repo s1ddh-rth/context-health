@@ -37,7 +37,9 @@ const BUILT_IN_DEFAULTS = {
     },
     confusion: {
       enabled: true,
-      recentCallWindow: 10,
+      // 20, not 10: with a 10-call window the smallest non-zero error rate is
+      // 0.10, so a single error tripped the 0.05 yellow. 20 makes it meaningful.
+      recentCallWindow: 20,
       activeToolYellow: 30,
       toolErrorRateYellow: 0.05,
       toolErrorRateRed: 0.10,
@@ -46,10 +48,12 @@ const BUILT_IN_DEFAULTS = {
       enabled: true,
       rollingActivityTurns: 5,
       minTurnsBeforeFiring: 3,
-      // Calibrated from eval/drift-pairs.json (worker/eval_drift.py): the spec
-      // default 0.70 produced a 43% false-alarm rate; precision-first rec ~0.55.
-      cosineSimilarityYellow: 0.60,
-      cosineSimilarityRed: 0.45,
+      // Calibrated from eval/drift-pairs.json (worker/eval_drift.py): on-goal
+      // cosine floor ~0.559, drifted mean ~0.450. yellow 0.55 sits just under the
+      // on-goal floor (0 false alarms, 93% recall); red 0.50 catches clear drift
+      // at the same 0 false alarms (0.45 was too low to fire usefully).
+      cosineSimilarityYellow: 0.55,
+      cosineSimilarityRed: 0.50,
       weakAnchorMinTokens: 12,
       weakAnchorThresholdPenalty: 0.05,
     },

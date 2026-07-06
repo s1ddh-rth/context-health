@@ -259,6 +259,14 @@ plugin degrades gracefully in each case:
   (mute, tune a threshold, reset the goal, toggle the off-by-default detector);
   none touch your code or data.
 
+## Contributing
+
+Contributions are welcome — especially better labeled data for calibration and
+false-alarm reports. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, the test +
+eval gates, and the DCO sign-off. This project follows a
+[Code of Conduct](./CODE_OF_CONDUCT.md); security reports go through
+[SECURITY.md](./SECURITY.md).
+
 ## License
 
-MIT
+[MIT](./LICENSE) © 2026 s1ddh-rth

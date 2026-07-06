@@ -119,7 +119,7 @@ def run_once(embedder, config, goal_cache, seen_turns, last_severity,
                 if result["severity"] == "red" and prev != "red":
                     notifications.append(
                         f"Context health: goal-drift — {result['reason']}. "
-                        "Restate the goal or start fresh."
+                        "Restate your goal (keep it in a durable note) and re-anchor."
                     )
             seen_turns[session_id] = turn
 
@@ -140,7 +140,7 @@ def run_once(embedder, config, goal_cache, seen_turns, last_severity,
                     if verdict["severity"] == "red" and prev != "red":
                         notifications.append(
                             f"Context health: contradiction — {verdict['reason']}. "
-                            "Resolve the conflicting facts before continuing."
+                            "Start fresh; don't compact the bad fact forward."
                         )
 
     return notifications

@@ -20,10 +20,12 @@ BUILT_IN_DEFAULTS = {
             "enabled": True,
             "rollingActivityTurns": 5,
             "minTurnsBeforeFiring": 3,
-            # Calibrated from eval/drift-pairs.json (eval_drift.py); spec default
-            # 0.70 gave a 43% false-alarm rate, precision-first rec ~0.55.
-            "cosineSimilarityYellow": 0.60,
-            "cosineSimilarityRed": 0.45,
+            # Calibrated from eval/drift-pairs.json (eval_drift.py): on-goal floor
+            # ~0.559, drifted mean ~0.450. yellow 0.55 = just under the on-goal
+            # floor (0 FP, 93% recall); red 0.50 catches clear drift (0.45 was too
+            # low to fire usefully).
+            "cosineSimilarityYellow": 0.55,
+            "cosineSimilarityRed": 0.50,
             "weakAnchorMinTokens": 12,
             "weakAnchorThresholdPenalty": 0.05,
         },

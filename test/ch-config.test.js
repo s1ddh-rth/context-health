@@ -74,7 +74,7 @@ test('reset-goal clears goalText on the current session', () => {
 test('show prints a settings summary reflecting the calibrated drift default', () => {
   const out = run(['show']);
   assert.match(out, /goalDrift/);
-  assert.match(out, /0\.6/); // calibrated yellow
+  assert.match(out, /0\.55/); // calibrated yellow (evidence-verified)
 });
 
 test('unknown command prints usage, exit 0', () => {
