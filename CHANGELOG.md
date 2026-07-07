@@ -6,6 +6,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-07
+
 ### Changed
 - Calibrated goal-drift thresholds to **yellow 0.55 / red 0.50** (from 0.60/0.45),
   grounded in the measured cosine distribution of the labeled corpus (on-goal floor
@@ -16,6 +18,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   context-engineering literature).
 
 ### Added
+- `docs/METHODOLOGY.md` — per-detector what/how/why with verified sources.
 - `LICENSE` (MIT), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, and
   issue/PR templates.
 
@@ -42,5 +45,6 @@ Initial working plugin — phases 1–3.
   after research showed they collapse to the same local computation.
 - Fully open-source; no paid tier.
 
-[Unreleased]: https://github.com/s1ddh-rth/context-health/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/s1ddh-rth/context-health/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/s1ddh-rth/context-health/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/s1ddh-rth/context-health/releases/tag/v0.1.0

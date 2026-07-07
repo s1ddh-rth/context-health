@@ -259,6 +259,12 @@ plugin degrades gracefully in each case:
   (mute, tune a threshold, reset the goal, toggle the off-by-default detector);
   none touch your code or data.
 
+## How it computes things (and why)
+
+Every detector's formula, thresholds, and the **evidence** behind them are documented
+in [`docs/METHODOLOGY.md`](./docs/METHODOLOGY.md) — what each of the six variables is,
+how it's calculated, why the numbers are what they are, and the (verified) sources.
+
 ## Contributing
 
 Contributions are welcome — especially better labeled data for calibration and
