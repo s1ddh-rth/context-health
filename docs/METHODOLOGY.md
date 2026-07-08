@@ -60,10 +60,12 @@ slightly optimistic proxy.
 **Bands:** yellow **50%**, red **85%** (of the usable window). Yellow at ~50% aligns
 with RULER's finding that effective context is roughly half the advertised size [3]
 and NoLiMa's degradation by ~32k tokens on semantic tasks [4]. Red at 85% is
-**provisional and deliberately conservative for Claude**: degradation research
-clusters at 40–70% for the *smaller* models those studies stress most, but Claude's
-long-context models degrade more slowly [5], and precision-first means we'd rather
-miss than false-alarm a healthy session. Calibrate against Claude-specific data in
+**provisional and deliberately conservative for Claude**: the research shows
+performance degrades *non-uniformly* as input grows — often well before the window
+is full, and earliest on the smaller models those studies stress most — while
+Claude's long-context models degrade more slowly [5]. (The "40–70%" range
+sometimes quoted is a loose cross-study generalization, not a single benchmarked
+figure.) Precision-first means we'd rather miss than false-alarm a healthy session. Calibrate against Claude-specific data in
 the eval harness before lowering it.
 
 > The often-repeated "60–70% dumb zone" and "compact at 50%" figures are
@@ -124,8 +126,10 @@ via retrieval-based selection [6].
 ## 4. Goal-drift (the lead feature)
 
 **What.** The session started aimed at X and is now doing Y, without anyone deciding
-to change course. Semantic drift affects roughly half of multi-agent workflows over
-long runs [9].
+to change course. An early preprint on "agent drift" reports that unchecked
+semantic drift — progressive deviation from the original intent — measurably
+degrades task success over long multi-agent runs [9] (single-author, not yet
+peer-reviewed; treat as motivating evidence, not a settled result).
 
 **How.** At the first prompt, the goal is captured and embedded once with a local
 **FastEmbed / BAAI bge-small-en-v1.5** model (384-dim, ONNX, no GPU). Each turn a
@@ -225,7 +229,7 @@ All URLs verified to resolve as of July 2026.
 6. Gan & Sun, *RAG-MCP: Mitigating Prompt Bloat in LLM Tool Selection via RAG* — https://arxiv.org/abs/2505.03275
 7. Leng et al. (Databricks), *Long Context RAG Performance of Large Language Models* — https://arxiv.org/abs/2411.03538
 8. Paramanayakam et al., *Less is More: Optimizing Function Calling for LLM Execution on Edge Devices* (DATE 2025) — https://arxiv.org/abs/2411.15399
-9. Rath, *Agent Drift: Quantifying Behavioral Degradation in Multi-Agent LLM Systems Over Extended Interactions* — https://arxiv.org/abs/2601.04170
+9. Rath, *Agent Drift: Quantifying Behavioral Degradation in Multi-Agent LLM Systems Over Extended Interactions* — https://arxiv.org/abs/2601.04170 *(early single-author preprint, Jan 2026; not peer-reviewed)*
 10. Claude Code — Status line reference (context window fields) — https://code.claude.com/docs/en/statusline
 11. Elasticsearch Labs, *How to defend your RAG system from context poisoning* — https://www.elastic.co/search-labs/blog/context-poisoning-llm
 12. Anthropic, *Effective context engineering for AI agents* — https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents

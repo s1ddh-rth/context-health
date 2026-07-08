@@ -6,6 +6,26 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-08
+
+### Fixed
+- **Statusline now shows the remediation tip inline.** The per-condition remedy was
+  computed but never rendered — the statusline only named the condition. Yellow/red
+  now read e.g. `● goal drift: … → restate your goal and re-anchor`, dimmed.
+
+### Added
+- One-command local judge: `/context-health:toggle-contradiction on local [model]`
+  sets the contradiction judge to a local OpenAI-compatible model (e.g. Ollama) — no
+  more hand-editing config. BYOK remains the default.
+
+### Changed
+- Docs: reconciled the README goal-drift thresholds to the shipped/calibrated
+  **0.55/0.50** (a stale 0.60/0.45 reference remained); softened the agent-drift
+  citation to note it's an early single-author preprint; clarified that the "40–70%"
+  degradation range is a cross-study generalization, not a single benchmarked figure;
+  added local-judge capability guidance (a tiny model false-alarms — verified
+  end-to-end against a real local model — so pick a capable judge).
+
 ## [0.1.1] - 2026-07-07
 
 ### Changed
@@ -45,6 +65,7 @@ Initial working plugin — phases 1–3.
   after research showed they collapse to the same local computation.
 - Fully open-source; no paid tier.
 
-[Unreleased]: https://github.com/s1ddh-rth/context-health/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/s1ddh-rth/context-health/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/s1ddh-rth/context-health/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/s1ddh-rth/context-health/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/s1ddh-rth/context-health/releases/tag/v0.1.0

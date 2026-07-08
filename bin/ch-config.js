@@ -39,18 +39,34 @@ function setOverride(dottedPath, value) {
   uc.writeUserConfig(cfg);
 }
 
-function cmdContradiction(arg) {
+function cmdContradiction(arg, backend, model) {
   const on = arg === 'on' || arg === 'true' || arg === 'enable';
   const off = arg === 'off' || arg === 'false' || arg === 'disable';
-  if (!on && !off) return 'Usage: contradiction on|off';
+  if (!on && !off) return 'Usage: contradiction on|off [byok|local] [model]';
   setOverride('detectors.contradiction.enabled', on);
+
+  // Optional backend: `local` (OpenAI-compatible endpoint, e.g. Ollama — no key,
+  // no cost) or `byok` (the user's own Claude key). An optional model name follows.
+  let backendNote = '';
+  if (on && backend != null) {
+    const b = String(backend).toLowerCase();
+    if (b !== 'local' && b !== 'byok') return 'Usage: contradiction on|off [byok|local] [model]';
+    setOverride('detectors.contradiction.judge', b);
+    if (model != null && String(model).trim()) setOverride('detectors.contradiction.model', String(model));
+    backendNote = b === 'local'
+      ? ` Judge: LOCAL (${model || 'llama3.1'}) via an OpenAI-compatible endpoint at localhost:11434 — start it first (e.g. \`ollama serve\` + \`ollama pull ${model || 'llama3.1'}\`). No key, no cost.`
+      : ' Judge: BYOK (your own Claude API key). Install the extra once: `cd worker && uv sync --extra contradiction`.';
+  }
+
   // Clear any stale computed verdict on the current session so a previously
   // written red doesn't flash the instant the detector is (re)enabled, before
   // the worker's next throttled recheck.
   const id = mostRecentSessionId();
   if (id) updateSession(id, (s) => { if (s.computed) s.computed.contradiction = null; return s; });
   return on
-    ? 'Contradiction detector ENABLED (opt-in). It uses your OWN Claude API key or a local model — this plugin never bills you. For the API-key (byok) judge, install the extra once: `cd worker && uv sync --extra contradiction` (a local model needs no install). Applies on the next config read.'
+    ? 'Contradiction detector ENABLED (opt-in). It uses your OWN Claude API key or a local model — this plugin never bills you.' +
+      (backendNote || ' Default judge is BYOK; add `local <model>` to use a local model instead.') +
+      ' Applies on the next config read.'
     : 'Contradiction detector disabled.';
 }
 
@@ -109,7 +125,7 @@ function main() {
   const [cmd, a, b, c] = process.argv.slice(2);
   let out;
   switch (cmd) {
-    case 'contradiction': out = cmdContradiction(a); break;
+    case 'contradiction': out = cmdContradiction(a, b, c); break;
     case 'set': out = cmdSet(a, b); break;
     case 'threshold': out = cmdThreshold(a, b, c); break;
     case 'reset-goal': out = cmdResetGoal(); break;

@@ -56,8 +56,14 @@ function render(result, opts) {
   const rawCondition = worst.condition || 'context';
   const condition = CONDITION_LABELS[rawCondition] || rawCondition;
   const reason = worst.reason ? `: ${worst.reason}` : '';
-  const text = `${DOT} ${condition}${reason}`;
-  return colorize(text, severity, color);
+  const head = colorize(`${DOT} ${condition}${reason}`, severity, color);
+
+  // Show the remedy inline, dimmed, so the fix is one glance away — not buried
+  // in a notification the user may miss. Falls back cleanly when absent.
+  const tip = typeof worst.action === 'string' && worst.action
+    ? colorize(` → ${worst.action}`, 'dim', color)
+    : '';
+  return head + tip;
 }
 
 module.exports = { render, colorize, COLORS };

@@ -53,6 +53,25 @@ test('toggling contradiction clears a stale computed verdict on the session', ()
   assert.equal(readState().s.computed.contradiction, null);
 });
 
+test('contradiction on local <model> sets judge=local and the model', () => {
+  const out = run(['contradiction', 'on', 'local', 'qwen2.5:0.5b']);
+  const c = readCfg().detectors.contradiction;
+  assert.equal(c.enabled, true);
+  assert.equal(c.judge, 'local');
+  assert.equal(c.model, 'qwen2.5:0.5b');
+  assert.match(out, /LOCAL/);
+});
+
+test('contradiction on byok sets judge=byok', () => {
+  run(['contradiction', 'on', 'byok']);
+  assert.equal(readCfg().detectors.contradiction.judge, 'byok');
+});
+
+test('contradiction on with a bogus backend prints usage', () => {
+  const out = run(['contradiction', 'on', 'nonsense']);
+  assert.match(out, /Usage/);
+});
+
 test('threshold sets a nested detector value with type coercion', () => {
   run(['threshold', 'goalDrift', 'cosineSimilarityYellow', '0.62']);
   assert.equal(readCfg().detectors.goalDrift.cosineSimilarityYellow, 0.62);

@@ -177,6 +177,21 @@ detector that, when enabled, runs an LLM judge on **your own** Claude API key
 throttled. The API-key judge needs a one-time `cd worker && uv sync --extra
 contradiction`; a local model needs no install.
 
+Turn it on with one command — BYOK or local:
+
+```
+/context-health:toggle-contradiction on                    # BYOK (default judge: claude-haiku-4-5)
+/context-health:toggle-contradiction on local llama3.1     # local (OpenAI-compatible endpoint, e.g. Ollama on :11434)
+```
+
+**Use a capable judge.** Contradiction detection is natural-language inference —
+precision depends on the model. In testing, a tiny 0.5B local model correctly
+caught a real contradiction but also *false-alarmed on a clean session*; a
+false alarm is worse than a miss here, so pick a capable judge — Claude Haiku
+(BYOK) or a ≳7–8B local model such as `llama3.1`. The judge hits a standard
+OpenAI-compatible endpoint (`localhost:11434/v1/chat/completions` by default),
+so any Ollama/LM-Studio/vLLM server works.
+
 ## Proving it works — the eval harness
 
 Everyone counts tokens; nobody proves their detector is right. This one does.
@@ -191,12 +206,15 @@ detectors and reports precision, recall, F0.5 (precision-weighted), and the
 false-positive rate per detector — the numbers a precision-first product lives
 and dies on. The drift calibrator scores labeled on-goal/drifted pairs with the
 real embedding model and recommends thresholds; that's how the provisional
-spec defaults (0.70/0.50) became the calibrated 0.60/0.45 — the 0.70 default had
-a **43% false-alarm rate** on the labeled set.
+spec default (yellow 0.70) became the calibrated **0.55/0.50** — on the labeled
+set, on-goal pairs bottom out at cosine **0.559** and drifted pairs average
+**0.450**, so yellow **0.55** sits just under the on-goal floor (**0 false
+alarms, 93% recall**) while the 0.70 spec default sat *above* the entire on-goal
+distribution and would fire on healthy sessions.
 
 The labeled set is small (~30 pairs) and its drifted examples are clear topic
 changes, not the gradual, domain-adjacent drift of real sessions — so treat
-0.60/0.45 as *better-calibrated defaults, still tunable*, not a final answer.
+0.55/0.50 as *better-calibrated defaults, still tunable*, not a final answer.
 Grow `eval/drift-pairs.json` with real-transcript pairs and re-run the
 calibrator to refine them (they're a `/context-health:set-threshold` away).
 

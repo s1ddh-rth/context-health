@@ -30,6 +30,20 @@ test('yellow render names the worst condition and its reason', () => {
   assert.match(out, /31 tools/);
 });
 
+test('yellow/red render appends the remedy tip inline when worst carries an action', () => {
+  const r = { severity: 'yellow', worst: { condition: 'confusion', reason: '31 tools active', action: 'disable unneeded tools' }, fillPercent: 40 };
+  const out = render(r, { color: false });
+  assert.match(out, /confusion/i);
+  assert.match(out, /→/);
+  assert.match(out, /disable unneeded tools/);
+});
+
+test('render omits the tip cleanly when no action is present', () => {
+  const r = { severity: 'yellow', worst: { condition: 'confusion', reason: '31 tools' }, fillPercent: 40 };
+  const out = render(r, { color: false });
+  assert.doesNotMatch(out, /→/);
+});
+
 test('red render names the condition', () => {
   const r = { severity: 'red', worst: { condition: 'distraction', reason: 'context 90% full' }, fillPercent: 90 };
   const out = render(r, { color: false });

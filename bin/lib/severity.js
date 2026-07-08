@@ -46,17 +46,27 @@ function rollup(detectorResults) {
 
   const severity = worstRank === 2 ? 'red' : worstRank === 1 ? 'yellow' : 'green';
 
-  let alert = null;
-  if (severity === 'red' && worst) {
+  // Attach the short remedy to the worst condition so the statusline can show it
+  // inline (yellow and red alike). This is the glanceable tip; `alert` below is
+  // the separate red-only interrupt the worker delivers as a notification.
+  let worstWithAction = null;
+  let action = null;
+  if (severity !== 'green' && worst) {
     const cond = worst.condition || 'context';
-    const action = SUGGESTED_ACTION[cond] || 'compact now or start a fresh session';
-    const detail = worst.reason ? ` (${worst.reason})` : '';
+    action = SUGGESTED_ACTION[cond] || 'compact now or start a fresh session';
+    worstWithAction = Object.assign({}, worst, { action });
+  }
+
+  let alert = null;
+  if (severity === 'red' && worstWithAction) {
+    const cond = worstWithAction.condition || 'context';
+    const detail = worstWithAction.reason ? ` (${worstWithAction.reason})` : '';
     alert = `Context health: ${cond}${detail} — ${action}.`;
   }
 
   return {
     severity,
-    worst: severity === 'green' ? null : worst,
+    worst: worstWithAction,
     alert,
   };
 }

@@ -51,6 +51,13 @@ test('rollup: yellow produces no interrupt alert', () => {
   assert.equal(r.alert, null);
 });
 
+test('rollup: worst carries an inline action for both yellow and red', () => {
+  const y = rollup([{ condition: 'confusion', severity: 'yellow', reason: '31 tools' }]);
+  assert.ok(y.worst.action, 'yellow worst should carry an action tip');
+  const rd = rollup([{ condition: 'distraction', severity: 'red', reason: '90% full' }]);
+  assert.ok(rd.worst.action, 'red worst should carry an action tip');
+});
+
 test('rollup: empty list => green', () => {
   const r = rollup([]);
   assert.equal(r.severity, 'green');
