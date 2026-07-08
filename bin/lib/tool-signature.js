@@ -13,6 +13,25 @@
 
 const MAX_KEY_LENGTH = 2048;
 
+// Cosmetic top-level fields the agent regenerates per call carry no semantic
+// meaning for loop detection — most importantly Bash's `description`, which is a
+// fresh human-readable annotation on every call. Left in the signature, they make
+// every otherwise-identical action look unique, so the repetition detector never
+// fires on real command loops. Strip them so the same action shares a signature.
+const IGNORED_PARAM_KEYS = new Set(['description']);
+
+function stripCosmetic(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return input;
+  let copy = null;
+  for (const k of Object.keys(input)) {
+    if (IGNORED_PARAM_KEYS.has(k)) {
+      if (copy === null) copy = Object.assign({}, input);
+      delete copy[k];
+    }
+  }
+  return copy === null ? input : copy;
+}
+
 function normalizeString(s) {
   return s.replace(/\s+/g, ' ').trim();
 }
@@ -54,7 +73,7 @@ function stableParamsKey(params) {
 function normalizeToolCall(toolName, toolInput) {
   return {
     name: toolName != null ? String(toolName) : '',
-    paramsKey: stableParamsKey(toolInput),
+    paramsKey: stableParamsKey(stripCosmetic(toolInput)),
   };
 }
 

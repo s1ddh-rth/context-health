@@ -11,6 +11,17 @@ test('identical calls produce an identical signature', () => {
   assert.equal(a.paramsKey, b.paramsKey);
 });
 
+test('the cosmetic `description` field is ignored so repeated Bash calls match', () => {
+  // Claude Code regenerates a fresh `description` for every Bash call; two runs of
+  // the same command must still share a signature, or loop detection never fires.
+  const a = normalizeToolCall('Bash', { command: 'git status', description: 'git status run 1/20' });
+  const b = normalizeToolCall('Bash', { command: 'git status', description: 'git status run 2/20' });
+  assert.equal(a.paramsKey, b.paramsKey);
+  // but the meaningful field (command) still distinguishes different actions
+  const c = normalizeToolCall('Bash', { command: 'git log', description: 'x' });
+  assert.notEqual(a.paramsKey, c.paramsKey);
+});
+
 test('key order does not matter', () => {
   const a = stableParamsKey({ pattern: 'foo', path: '/x' });
   const b = stableParamsKey({ path: '/x', pattern: 'foo' });

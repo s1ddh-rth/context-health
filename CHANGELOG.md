@@ -12,6 +12,11 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Statusline now shows the remediation tip inline.** The per-condition remedy was
   computed but never rendered — the statusline only named the condition. Yellow/red
   now read e.g. `● goal drift: … → restate your goal and re-anchor`, dimmed.
+- **Distraction detector now catches real Bash command loops.** The repetition
+  signature included the tool call's cosmetic `description`, which the agent
+  regenerates on every call — so identical repeated commands looked unique and the
+  detector never fired. Cosmetic fields (`description`) are now stripped from the
+  signature; a repeated command trips distraction as intended (verified live).
 
 ### Added
 - One-command local judge: `/context-health:toggle-contradiction on local [model]`
