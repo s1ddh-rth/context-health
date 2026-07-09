@@ -70,6 +70,24 @@ test('prompts list is bounded', () => {
   assert.equal(s.prompts.length, sig.MAX_PROMPTS);
 });
 
+test('each stored prompt is length-capped so a huge paste cannot bloat the state file', () => {
+  const s = fresh();
+  sig.recordPrompt(s, 'seed goal');
+  sig.recordPrompt(s, 'X'.repeat(2_000_000));
+  assert.ok(s.prompts[s.prompts.length - 1].length <= 4000, 'prompt entry must be truncated');
+});
+
+test('recordPrompt records goalSetTurn so the grace period tracks turns-since-goal', () => {
+  const s = fresh();
+  sig.recordPrompt(s, 'the goal'); // first prompt sets the goal
+  assert.equal(s.goalSetTurn, 0); // measured from the turn before this one -> old timing preserved
+});
+
+test('isErrorOutput: {error:"0"} (string zero) is NOT an error', () => {
+  assert.equal(sig.isErrorOutput({ error: '0' }), false);
+  assert.equal(sig.isErrorOutput({ error: 0 }), false);
+});
+
 test('evaluate: healthy session rolls up to green', () => {
   const s = fresh();
   sig.recordToolCall(s, 'Read', { file: 'a' });

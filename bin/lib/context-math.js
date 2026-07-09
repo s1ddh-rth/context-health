@@ -55,7 +55,10 @@ function computeContextFill(input, opts = {}) {
   }
 
   const windowSize = extractWindowSize(input, opts);
-  const usableWindow = Math.max(1, windowSize - buffer);
+  // If the reported buffer is >= the window (a degenerate/misreported case that has
+  // occurred upstream), fall back to the full window rather than clamping usable to
+  // 1 — which would blow fillPercent up to absurd values (e.g. 1,000,000%).
+  const usableWindow = Math.max(1, windowSize > buffer ? windowSize - buffer : windowSize);
   const usedTokens = (usedPercentage / 100) * windowSize;
 
   const fillPercentRaw = (usedTokens / usableWindow) * 100;

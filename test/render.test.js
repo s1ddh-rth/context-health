@@ -57,6 +57,14 @@ test('red output carries the red ANSI color when color is on', () => {
   assert.ok(out.includes(COLORS.reset), 'expected reset code');
 });
 
+test('render strips newlines and terminal escape sequences from an untrusted reason', () => {
+  const evil = { severity: 'red', worst: { condition: 'contradiction', reason: 'a\n\x1b[31mFAKE\x1b[0m\x1b]0;title\x07 b' } };
+  const out = render(evil, { color: false });
+  assert.ok(!out.includes('\n'), 'must stay one line');
+  assert.ok(!out.includes('\x1b'), 'must not contain ESC bytes');
+  assert.match(out, /contradiction/i);
+});
+
 test('render never throws on a malformed result', () => {
   assert.doesNotThrow(() => render(undefined, {}));
   assert.doesNotThrow(() => render({ severity: 'red' }, {}));

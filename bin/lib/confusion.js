@@ -22,7 +22,7 @@ function severityRank(sev) {
 
 function detectConfusion(input, config) {
   const cfg = config || {};
-  const window = Number.isFinite(cfg.recentCallWindow) && cfg.recentCallWindow > 0 ? cfg.recentCallWindow : 10;
+  const window = Number.isFinite(cfg.recentCallWindow) && cfg.recentCallWindow > 0 ? cfg.recentCallWindow : 20;
   const toolYellow = Number.isFinite(cfg.activeToolYellow) ? cfg.activeToolYellow : 30;
   const errYellow = Number.isFinite(cfg.toolErrorRateYellow) ? cfg.toolErrorRateYellow : 0.05;
   const errRed = Number.isFinite(cfg.toolErrorRateRed) ? cfg.toolErrorRateRed : 0.10;

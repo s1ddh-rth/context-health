@@ -56,6 +56,18 @@ test('computeContextFill: null input => ok:false, no throw', () => {
   assert.equal(r.ok, false);
 });
 
+test('computeContextFill: buffer >= window degrades gracefully, not to an absurd percentage', () => {
+  // Misreported/degenerate case (has occurred upstream): buffer larger than window.
+  // Must not clamp usable to 1 and produce e.g. 1,000,000%.
+  const r = computeContextFill(
+    { context_window: { used_percentage: 50, max_tokens: 20000 } },
+    { autocompactBufferTokens: 33000, defaultWindowSize: 200000 }
+  );
+  assert.equal(r.ok, true);
+  assert.ok(Number.isFinite(r.fillPercent), 'fillPercent must be finite');
+  assert.ok(r.fillPercent <= 200, `expected a sane bounded percent, got ${r.fillPercent}`);
+});
+
 test('extractWindowSize: prefers an explicit window field when present', () => {
   const size = extractWindowSize({ context_window: { max_tokens: 1000000 } }, DEFAULTS);
   assert.equal(size, 1000000);

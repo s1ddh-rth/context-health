@@ -92,6 +92,9 @@ function cmdResetGoal() {
   updateSession(id, (s) => {
     s.goalText = null;
     s.goalAnchorWeak = false;
+    // Clear the grace-period anchor too so the next prompt's new goal gets a fresh
+    // minTurnsBeforeFiring window instead of inheriting this long session's turns.
+    s.goalSetTurn = null;
     if (s.computed) s.computed.goalDrift = null;
     return s;
   });

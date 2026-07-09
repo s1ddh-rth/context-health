@@ -6,6 +6,32 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-07-09
+
+### Fixed
+- **Goal-drift grace period survives `/reset-goal`.** The `minTurnsBeforeFiring`
+  window is now measured from when the goal was set (`goalSetTurn`), not from
+  session start — so resetting the goal on a long session gets a fresh grace
+  window instead of being able to fire red on the very next turn.
+- **Each stored prompt is length-capped (4000 chars).** Previously only the prompt
+  *count* was bounded; a large pasted diff/log could bloat the shared state file
+  that every hook read-modify-writes (and inflate the opt-in judge's token cost).
+- **Contradiction judge `reason` is sanitized** (control/ANSI/newline stripped)
+  before it is persisted and rendered — closing a terminal-escape-injection
+  surface on the untrusted judge output. The statusline renderer also strips
+  control characters from any reason defensively.
+- **`context-math`: buffer ≥ window no longer yields absurd percentages.** A
+  degenerate/misreported buffer now falls back to the full window instead of
+  producing e.g. 1,000,000%.
+- **`confusion` internal fallback window corrected 10 → 20** to match the shipped,
+  quantization-safe default (a lone error no longer implies a 0.10 rate).
+- **`isErrorOutput` no longer treats `{error: "0"}` (string zero) as an error.**
+
+### Added
+- **GitHub Actions CI**: JS tests + structural eval (`--check`) on ubuntu &
+  windows, Python worker tests on ubuntu.
+- `package.json` `repository`/`author`/`homepage`/`bugs`/`engines` metadata.
+
 ## [0.1.2] - 2026-07-08
 
 ### Fixed
@@ -70,7 +96,8 @@ Initial working plugin — phases 1–3.
   after research showed they collapse to the same local computation.
 - Fully open-source; no paid tier.
 
-[Unreleased]: https://github.com/s1ddh-rth/context-health/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/s1ddh-rth/context-health/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/s1ddh-rth/context-health/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/s1ddh-rth/context-health/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/s1ddh-rth/context-health/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/s1ddh-rth/context-health/releases/tag/v0.1.0

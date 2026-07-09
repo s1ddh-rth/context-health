@@ -76,7 +76,15 @@ def compute_session_drift(session, embedder, drift_cfg, goal_cache):
         return None
 
     similarity = cosine_similarity(goal_vec, act_vec)
-    result = evaluate_drift(similarity, turn, drift_cfg, weak_anchor)
+    # Measure the grace period from when the goal was set, not session start, so a
+    # /reset-goal on a long session gets a fresh minTurnsBeforeFiring window.
+    # Legacy state without goalSetTurn falls back to the old turnCount behavior.
+    goal_set_turn = session.get("goalSetTurn")
+    if isinstance(goal_set_turn, (int, float)) and not isinstance(goal_set_turn, bool):
+        turns_since_goal = turn - goal_set_turn
+    else:
+        turns_since_goal = turn
+    result = evaluate_drift(similarity, turns_since_goal, drift_cfg, weak_anchor)
     # round for a stable, compact state file
     result["similarity"] = round(float(similarity), 4)
     return result

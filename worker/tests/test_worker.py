@@ -93,6 +93,26 @@ def test_short_goal_is_treated_as_weak_anchor():
     assert r["weakAnchor"] is True
 
 
+def test_reset_goal_gets_fresh_grace_period_via_goal_set_turn():
+    # Simulate /reset-goal on a long session: turnCount stays high, but goalSetTurn
+    # marks when the *new* goal was captured. turns-since-goal gates the grace
+    # period, so drift must NOT fire immediately despite off-goal activity.
+    s = make_session(turn=51)
+    s["goalSetTurn"] = 50  # 1 turn since goal < minTurnsBeforeFiring (3)
+    emb = FakeEmbedder(s["goalText"], [1, 0], [0, 1])  # orthogonal -> red without grace
+    r = worker.compute_session_drift(s, emb, DRIFT_CFG, {})
+    assert r["severity"] == "green"
+    assert r["belowMinTurns"] is True
+
+
+def test_missing_goal_set_turn_falls_back_to_turn_count():
+    # Legacy state without goalSetTurn keeps the old turnCount-based grace behavior.
+    s = make_session(turn=5)  # no goalSetTurn key
+    emb = FakeEmbedder(s["goalText"], [1, 0], [0, 1])  # orthogonal -> red (past grace)
+    r = worker.compute_session_drift(s, emb, DRIFT_CFG, {})
+    assert r["severity"] == "red"
+
+
 # --- run_once (touches the state file) ---
 
 @pytest.fixture()

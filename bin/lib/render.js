@@ -12,14 +12,18 @@
  */
 
 const COLORS = {
-  green: '[32m',
-  yellow: '[33m',
-  red: '[31m',
-  dim: '[2m',
-  reset: '[0m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  dim: '\x1b[2m',
+  reset: '\x1b[0m',
 };
 
 const DOT = '●'; // ●
+
+// Control / ANSI-escape chars (C0 + DEL + C1). Stripped from any reason before it
+// reaches the terminal so untrusted text can't inject newlines or escape sequences.
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
 
 // Friendly display names for conditions whose internal key isn't presentable.
 const CONDITION_LABELS = {
@@ -55,7 +59,13 @@ function render(result, opts) {
   const worst = r.worst && typeof r.worst === 'object' ? r.worst : {};
   const rawCondition = worst.condition || 'context';
   const condition = CONDITION_LABELS[rawCondition] || rawCondition;
-  const reason = worst.reason ? `: ${worst.reason}` : '';
+  // Defense in depth: a reason can originate from an LLM judge (untrusted). Strip
+  // control/escape chars and collapse whitespace so nothing can inject newlines or
+  // terminal escape sequences into this single colored line.
+  const safeReason = typeof worst.reason === 'string'
+    ? worst.reason.replace(CONTROL_CHARS, '').replace(/\s+/g, ' ').trim()
+    : '';
+  const reason = safeReason ? `: ${safeReason}` : '';
   const head = colorize(`${DOT} ${condition}${reason}`, severity, color);
 
   // Show the remedy inline, dimmed, so the fix is one glance away — not buried

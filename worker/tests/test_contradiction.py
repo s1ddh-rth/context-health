@@ -56,6 +56,17 @@ def test_parse_contradiction_true_but_bad_severity_is_conservative_yellow():
     assert v["severity"] == "yellow"
 
 
+def test_parse_sanitizes_reason_control_chars_and_newlines():
+    # The judge output is untrusted (esp. the local backend); a reason with
+    # newlines / terminal escape sequences must not survive into the statusline.
+    raw = '{"contradiction": true, "severity": "red", "reason": "line1\\nline2\\u001b[31mX\\u001b[0m"}'
+    v = parse_judge_verdict(raw)
+    assert v["severity"] == "red"
+    assert "\n" not in v["reason"]
+    assert "\x1b" not in v["reason"]
+    assert "line1" in v["reason"] and "line2" in v["reason"]
+
+
 # --- evaluate_contradiction (fake judge) ---
 
 def test_evaluate_calls_judge_and_returns_verdict():

@@ -19,6 +19,7 @@ const MAX_RECENT_TOOL_CALLS = 40;
 const MAX_RECENT_CALLS = 40;
 const MAX_PROMPTS = 10;
 const MAX_GOAL_CHARS = 4000;
+const MAX_PROMPT_CHARS = 4000;
 const MAX_ACTIVE_TOOLS = 100;
 
 function pushBounded(arr, item, max) {
@@ -51,10 +52,22 @@ function recordToolResult(s, toolName, toolOutput) {
 }
 
 function recordPrompt(s, prompt) {
-  const text = prompt != null ? String(prompt) : '';
+  // Cap each stored prompt's length (not just the count): an unbounded entry —
+  // e.g. a multi-MB pasted diff or log — would bloat the state file that every
+  // hook read-modify-writes, and the goal-drift/contradiction paths embed or ship
+  // recent prompts verbatim. Mirrors the goalText / paramsKey caps.
+  const text = (prompt != null ? String(prompt) : '').slice(0, MAX_PROMPT_CHARS);
   pushBounded(s.prompts, text, MAX_PROMPTS);
-  s.turnCount = (s.turnCount || 0) + 1;
-  if (!s.goalText && text.trim()) setGoal(s, text);
+  const prevTurn = s.turnCount || 0;
+  s.turnCount = prevTurn + 1;
+  if (!s.goalText && text.trim()) {
+    setGoal(s, text);
+    // The goal-drift grace period (minTurnsBeforeFiring) is measured from when the
+    // goal was set, not from session start — so /reset-goal starts a fresh grace
+    // window instead of firing immediately on a long-running session. prevTurn
+    // preserves the original turnCount-based timing for the very first goal.
+    s.goalSetTurn = prevTurn;
+  }
   return s;
 }
 
@@ -76,7 +89,7 @@ function isErrorOutput(output) {
     if (output.is_error === true || output.isError === true) return true;
     // A truthy error message counts; but a numeric 0 (some tools report
     // `error: 0` to mean "no error") must not.
-    if (output.error != null && output.error !== '' && output.error !== false && output.error !== 0) return true;
+    if (output.error != null && output.error !== '' && output.error !== '0' && output.error !== false && output.error !== 0) return true;
     if (typeof output.status === 'string' && /^(error|failed)$/i.test(output.status)) return true;
     if (Number.isFinite(output.exit_code) && output.exit_code !== 0) return true;
     return false;

@@ -14,6 +14,17 @@ parse degrades to green (no alarm).
 """
 
 import json
+import re
+
+# Control / ANSI-escape characters. The judge's output is untrusted (especially the
+# local backend) and its `reason` is rendered into the single-line, ANSI-colored
+# statusline — so strip anything that could inject newlines or terminal escapes.
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def _sanitize_reason(text):
+    return " ".join(_CONTROL_CHARS.sub("", str(text)).split())
+
 
 JUDGE_PROMPT = """You are a precise contradiction detector for an AI coding session.
 Below is a numbered list of statements and actions from the recent context
@@ -80,8 +91,8 @@ def parse_judge_verdict(text):
     severity = obj.get("severity")
     if severity not in ("yellow", "red"):
         severity = "yellow"  # contradiction=true but odd severity -> conservative yellow
-    reason = obj.get("reason") or "contradiction detected"
-    return {"severity": severity, "reason": str(reason)[:200]}
+    reason = _sanitize_reason(obj.get("reason") or "contradiction detected")
+    return {"severity": severity, "reason": reason[:200]}
 
 
 def evaluate_contradiction(session, judge_fn, min_items=2):

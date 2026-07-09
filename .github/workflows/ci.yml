@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  node:
+    name: Node tests & eval (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # Use bash on every OS so the test-file glob expands consistently
+      # (Windows/Git Bash is a first-class support target for this plugin).
+      - name: JS test suite
+        shell: bash
+        run: node --test test/*.test.js
+      - name: Structural eval (fails on any mismatch)
+        shell: bash
+        run: node eval/run-eval.js --check
+
+  python:
+    name: Python worker tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: pytest
+        working-directory: worker
+        run: uv run --extra dev pytest -q
