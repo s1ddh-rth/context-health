@@ -12,7 +12,12 @@
     "health",
     "statusline",
     "observability",
-    "drift"
+    "drift",
+    "claude-code",
+    "context-engineering",
+    "context-rot",
+    "goal-drift",
+    "ai-agents"
   ],
   "experimental": {
     "monitors": "./monitors/monitors.json"
