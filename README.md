@@ -1,5 +1,10 @@
 # Context Health Detector for Claude Code
 
+[![CI](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml/badge.svg)](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+![version](https://img.shields.io/badge/version-0.1.3-blue)
+![zero API cost by default](https://img.shields.io/badge/API%20cost-%240%20by%20default-brightgreen)
+
 Everyone can see how *full* their context is. Nobody can see whether it has gone
 *bad*. This Claude Code **plugin** watches a session live and flags the ways
 context degrades — **distraction, confusion, goal-drift, and contradiction** —
@@ -18,15 +23,16 @@ API key or a local model).
 > false-alarm-prone heuristics. Distraction, confusion, and goal-drift each keep a
 > distinct, independently-calculable signal.
 
-> **Status: Phase 3 shipped.** Distraction + confusion (Phase 1) and goal-drift
-> (Phase 2) run locally with no API cost. Phase 3 adds the **eval harness** (the
-> credibility layer — measured precision/recall, not just token counts),
-> data-calibrated thresholds, **plain-language config slash commands**, and the
-> opt-in **contradiction** detector. See [Roadmap](#roadmap).
+> **Status: v0.1.3 — all four detectors shipped and working.** Distraction,
+> confusion, and goal-drift run locally with **zero API cost**; the opt-in
+> contradiction detector runs on your own key or a local model. Backed by an
+> **eval harness** (measured precision/recall, not just token counts),
+> data-calibrated thresholds, and **plain-language config slash commands**.
+> See the [Roadmap](#roadmap) for what's next.
 
 ---
 
-## What Phase 1 gives you
+## What you get
 
 A statusline that beats a plain token counter:
 
@@ -42,16 +48,17 @@ A statusline that beats a plain token counter:
   collapses past ~30) or the tool-error rate climbs.
 
 The line stays green (and shows the fill %) until a detector trips, then turns
-yellow or red and names the condition and a suggested action.
+yellow or red, names the condition, and shows a short **evidence-based remedy
+inline** (dimmed, after the `→`) so the fix is one glance away:
 
 ```
-● ctx 24%                                      ← healthy, ambient
-● confusion: 31 tools active                   ← yellow
-● distraction: context 90% full                ← red
-● goal drift: drifting from goal (46% similar) ← yellow (Phase 2)
+● ctx 24%                                                                    ← healthy, ambient
+● confusion: 31 tools active → disable unneeded tools — fewer choices sharpen selection   ← yellow
+● distraction: context 90% full → compact now, or start fresh and reload the essentials   ← red
+● goal drift: drifting from goal (46% similar) → restate your goal and re-anchor           ← yellow
 ```
 
-**Goal-drift (Phase 2).** At the first prompt the session's goal is captured and
+**Goal-drift.** At the first prompt the session's goal is captured and
 embedded (locally, 384-dim FastEmbed / BAAI/bge-small-en-v1.5). Each turn a warm
 background worker embeds a rolling window of recent activity and measures its
 cosine similarity to the goal — rising distance is drift. The goal-defining
@@ -139,8 +146,8 @@ without hard-coding. Resolution order (later wins):
 1. Built-in defaults (baked into `bin/lib/config.js` — the tool works even with
    no config file).
 2. The plugin's `settings.json`.
-3. A user override at `~/.claude/context-health-config.json` — where phase-3
-   slash commands will write tuned values, so you never edit plugin JSON by hand.
+3. A user override at `~/.claude/context-health-config.json` — where the
+   slash commands write tuned values, so you never edit plugin JSON by hand.
 
 Key knobs (`detectors.distraction`, `detectors.confusion`):
 
@@ -165,7 +172,7 @@ never to plugin files:
 | `/context-health:set-threshold <detector> <key> <value>` | tune a threshold (e.g. make goal-drift less sensitive) |
 | `/context-health:mute` / `mute off` | silence warnings this session (fill still shows) |
 | `/context-health:reset-goal` | re-anchor goal-drift; your next prompt becomes the new goal |
-| `/context-health:toggle-contradiction on\|off` | enable the opt-in contradiction detector |
+| `/context-health:toggle-contradiction on\|off [byok\|local] [model]` | enable the opt-in contradiction detector (BYOK by default, or a local model — see below) |
 
 ### The contradiction detector (opt-in, off by default)
 
