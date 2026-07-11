@@ -21,6 +21,7 @@
 const uc = require('./lib/user-config.js');
 const { loadConfig } = require('./lib/config.js');
 const { loadState, updateSession } = require('./lib/state.js');
+const sw = require('./lib/statusline-wiring.js');
 
 function mostRecentSessionId() {
   const all = loadState();
@@ -124,6 +125,19 @@ function cmdShow() {
   return lines.join('\n');
 }
 
+// setup-statusline <dataDir> <root>: the /context-health:setup-statusline skill
+// substitutes ${CLAUDE_PLUGIN_DATA} / ${CLAUDE_PLUGIN_ROOT} into these args, so we
+// get this install's real paths (the DATA dir id embeds the marketplace alias and
+// cannot be assumed). This is the ONLY command that writes the user's own
+// ~/.claude/settings.json — always user-invoked, additive, backed up, non-clobbering.
+function cmdSetupStatusline(dataDir, root) {
+  return sw.wireStatusline({ dataDir, root }).message;
+}
+
+function cmdUnsetupStatusline(dataDir, root) {
+  return sw.unwireStatusline({ dataDir, root }).message;
+}
+
 function main() {
   const [cmd, a, b, c] = process.argv.slice(2);
   let out;
@@ -134,9 +148,11 @@ function main() {
     case 'reset-goal': out = cmdResetGoal(); break;
     case 'mute': out = cmdMute(!(a === 'off' || a === 'unmute' || a === 'false')); break;
     case 'unmute': out = cmdMute(false); break;
+    case 'setup-statusline': out = cmdSetupStatusline(a, b); break;
+    case 'unsetup-statusline': out = cmdUnsetupStatusline(a, b); break;
     case 'show': out = cmdShow(); break;
     default:
-      out = 'Usage: contradiction on|off | set <path> <value> | threshold <detector> <key> <value> | reset-goal | mute | unmute | show';
+      out = 'Usage: contradiction on|off | set <path> <value> | threshold <detector> <key> <value> | reset-goal | mute | unmute | setup-statusline | unsetup-statusline | show';
   }
   process.stdout.write(out + '\n');
 }

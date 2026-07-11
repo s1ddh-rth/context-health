@@ -8,6 +8,15 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/session-start.js\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/materialize-statusline.js\"",
+            "async": true
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [

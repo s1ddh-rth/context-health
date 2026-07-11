@@ -6,6 +6,29 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-07-11
+
+### Fixed
+- **Statusline install actually works now.** The old README told users to add a
+  `statusLine` pointing at `${CLAUDE_PLUGIN_ROOT}/statusline/statusline.js` — but
+  Claude Code does **not** expand `${CLAUDE_PLUGIN_ROOT}` in a user's own
+  `settings.json`, and a plugin cannot auto-register a global statusline at all
+  (only `agent`/`subagentStatusLine` are honored). That instruction was broken on
+  first install. The plugin's own `settings.json` `statusLine` block (also inert)
+  is replaced with a `$statusLineNote` explaining the constraint.
+
+### Added
+- **`/context-health:setup-statusline` skill + self-healing renderer copy.** A
+  one-time command wires the statusline into the user's `~/.claude/settings.json`,
+  pointing at a stable, version-independent copy of the renderer under
+  `${CLAUDE_PLUGIN_DATA}/current/` (documented to survive plugin updates, so the
+  wiring never rots on the next release). A new async `SessionStart` hook
+  (`materialize-statusline.js`) refreshes that copy on every version change; the
+  common path is a single stamp compare. The settings write is additive, backs up
+  first, is idempotent, and refuses to overwrite a foreign statusline. New
+  `bin/lib/statusline-wiring.js` + `test/statusline-wiring.test.js` (the launcher
+  smoke test runs standalone with no plugin env vars, on Windows and Ubuntu CI).
+
 ## [0.1.3] - 2026-07-09
 
 ### Fixed

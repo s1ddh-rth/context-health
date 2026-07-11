@@ -74,7 +74,23 @@ statusline never load the model.
 ```
 /plugin marketplace add s1ddh-rth/context-health
 /plugin install context-health@context-health
+/context-health:setup-statusline
 ```
+
+The first two commands install the hooks, skills, and background worker. The
+third is a **one-time** step that puts the health signal in your statusline.
+
+Why the extra step: Claude Code does not let a plugin register a global
+statusline on its own — the statusline command lives in *your* own
+`~/.claude/settings.json`. Rather than make you hand-edit JSON and paste a path
+that would break on the next plugin update, `/context-health:setup-statusline`
+wires it for you, pointing at a stable location that survives updates. It backs
+up your settings first, is safe to run more than once, and **never overwrites an
+existing custom statusline** — if you already have one, it just prints the exact
+line to add. Restart Claude Code (or open a new session) afterward to see it.
+
+To remove the statusline later, run the same script with `unsetup-statusline`
+(the setup command prints the exact path), or just uninstall the plugin.
 
 **Prerequisites.** Node (bundled with Claude Code's environment) for the hooks
 and statusline, and [`uv`](https://docs.astral.sh/uv/) for the Phase 2 worker.
@@ -83,14 +99,6 @@ an isolated `.venv` — no global installs, no manual setup. The embedding model
 downloads once (~90 MB) on first use, after which the tool is fully offline. If
 `uv` or the model is unavailable, goal-drift simply stays quiet; distraction,
 confusion, and the corrected context math keep working with zero dependencies.
-
-The plugin ships its statusline registration in `settings.json`. If your Claude
-Code version doesn't auto-apply a plugin's statusline, add this one line to your
-own settings to point at the bundled renderer:
-
-```json
-"statusLine": { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/statusline/statusline.js\"" }
-```
 
 ---
 

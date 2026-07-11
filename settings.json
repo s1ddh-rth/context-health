@@ -1,9 +1,6 @@
 {
   "$comment": "Default settings applied on plugin enable. All detector thresholds are provisional defaults from build-spec section 5.6 and are meant to be tuned by the phase 3 eval harness. Never hard-code these in detector logic; read them from here.",
-  "statusLine": {
-    "type": "command",
-    "command": "node \"${CLAUDE_PLUGIN_ROOT}/statusline/statusline.js\""
-  },
+  "$statusLineNote": "A plugin CANNOT auto-register a global statusline: Claude Code's plugin settings.json honors only 'agent' and 'subagentStatusLine'. Do NOT re-add a 'statusLine' key here expecting it to wire the live statusline — it is silently ignored. The live statusline is wired into the USER's own ~/.claude/settings.json by the /context-health:setup-statusline skill, which points it at a stable copy under CLAUDE_PLUGIN_DATA (survives plugin updates; see bin/lib/statusline-wiring.js).",
   "enabled": true,
   "muted": false,
   "context": {
