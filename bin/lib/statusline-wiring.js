@@ -283,10 +283,53 @@ function unwireStatusline(opts) {
   return { ok: true, changed: true, message: 'Removed the context-health statusLine from ' + file + '. Restart to apply.' };
 }
 
+// Is the user's settings.json statusLine currently pointed at our renderer?
+function isStatuslineWired(dataDir) {
+  const resolved = resolveDataDir(dataDir);
+  const parsed = readSettingsStrict(userSettingsPath());
+  if (!parsed.ok || parsed.missing) return false;
+  const existing = parsed.value.statusLine;
+  const cmd = existing && typeof existing === 'object' ? existing.command : undefined;
+  return isOurCommand(cmd, resolved);
+}
+
+/**
+ * First-run discoverability: a plugin cannot auto-register a global statusline, so
+ * a fresh install shows nothing until the user runs /context-health:setup-statusline.
+ * This returns a one-time nudge string (and records that it fired, in the DATA dir)
+ * when the statusline is not yet wired — so the plugin never looks silently broken.
+ * It NEVER edits the user's settings; it only informs. Returns null when already
+ * wired, already nudged, or no DATA dir is available.
+ */
+function firstRunNudge(opts) {
+  opts = opts || {};
+  const dataDir = resolveDataDir(opts.dataDir);
+  if (!dataDir) return null;
+  if (isStatuslineWired(dataDir)) return null;
+
+  const flag = path.join(dataDir, '.setup-nudged');
+  try {
+    if (fs.existsSync(flag)) return null;
+    fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(flag, '1', 'utf8');
+  } catch (_e) {
+    // If we cannot record that we nudged, stay silent rather than risk nagging
+    // on every single session start.
+    return null;
+  }
+
+  return 'context-health is installed, but its statusline is not wired yet — so the ' +
+    'health signal will not show. Run /context-health:setup-statusline once to enable it ' +
+    '(it edits only your ~/.claude/settings.json, backs it up first, and never overwrites ' +
+    'an existing custom statusline).';
+}
+
 module.exports = {
   materialize,
   wireStatusline,
   unwireStatusline,
+  isStatuslineWired,
+  firstRunNudge,
   launcherPath,
   ourCommand,
   currentDir,

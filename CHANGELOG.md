@@ -6,6 +6,16 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-07-11
+
+### Added
+- **First-run statusline nudge.** Because a plugin cannot auto-register a global
+  statusline, a fresh install shows nothing until the user runs
+  `/context-health:setup-statusline` — which looks broken. The `SessionStart` hook
+  now emits a one-time reminder (recorded in the DATA dir so it fires at most once)
+  whenever the statusline is not yet wired. It only informs; it never edits the
+  user's settings. New `firstRunNudge` / `isStatuslineWired` helpers + tests.
+
 ## [0.1.4] - 2026-07-11
 
 ### Fixed

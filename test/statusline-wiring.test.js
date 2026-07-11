@@ -168,6 +168,36 @@ test('wireStatusline refuses to edit a settings.json that is not valid JSON', ()
   }
 });
 
+test('firstRunNudge fires once when unwired, then stays silent', () => {
+  const dir = tmp('ch-nudge-');
+  const settingsFile = path.join(dir, 'settings.json'); // absent = unwired
+  const dataDir = path.join(dir, 'data');
+  process.env.CONTEXT_HEALTH_CC_SETTINGS = settingsFile;
+  try {
+    const first = sw.firstRunNudge({ dataDir });
+    assert.ok(first && /setup-statusline/.test(first), 'first call should nudge');
+    const second = sw.firstRunNudge({ dataDir });
+    assert.equal(second, null, 'second call must be silent (flag recorded)');
+    assert.ok(fs.existsSync(path.join(dataDir, '.setup-nudged')));
+  } finally {
+    delete process.env.CONTEXT_HEALTH_CC_SETTINGS;
+  }
+});
+
+test('firstRunNudge stays silent once the statusline is wired', () => {
+  const dir = tmp('ch-nudge2-');
+  const settingsFile = path.join(dir, 'settings.json');
+  const dataDir = path.join(dir, 'data');
+  process.env.CONTEXT_HEALTH_CC_SETTINGS = settingsFile;
+  try {
+    sw.wireStatusline({ root: REPO_ROOT, dataDir });
+    assert.equal(sw.isStatuslineWired(dataDir), true);
+    assert.equal(sw.firstRunNudge({ dataDir }), null);
+  } finally {
+    delete process.env.CONTEXT_HEALTH_CC_SETTINGS;
+  }
+});
+
 test('unwireStatusline removes our statusLine but leaves a foreign one', () => {
   const dir = tmp('ch-unwire-');
   const settingsFile = path.join(dir, 'settings.json');

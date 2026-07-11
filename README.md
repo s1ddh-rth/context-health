@@ -89,6 +89,9 @@ up your settings first, is safe to run more than once, and **never overwrites an
 existing custom statusline** — if you already have one, it just prints the exact
 line to add. Restart Claude Code (or open a new session) afterward to see it.
 
+If you install and forget this step, the plugin reminds you once at the next
+session start — it never wires anything silently.
+
 To remove the statusline later, run the same script with `unsetup-statusline`
 (the setup command prints the exact path), or just uninstall the plugin.
 
