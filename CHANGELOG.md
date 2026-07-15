@@ -129,7 +129,9 @@ Initial working plugin — phases 1–3.
   after research showed they collapse to the same local computation.
 - Fully open-source; no paid tier.
 
-[Unreleased]: https://github.com/s1ddh-rth/context-health/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/s1ddh-rth/context-health/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/s1ddh-rth/context-health/compare/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/s1ddh-rth/context-health/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/s1ddh-rth/context-health/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/s1ddh-rth/context-health/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/s1ddh-rth/context-health/compare/v0.1.0...v0.1.1

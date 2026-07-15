@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml/badge.svg)](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-![version](https://img.shields.io/badge/version-0.1.3-blue)
+![version](https://img.shields.io/badge/version-0.1.5-blue)
 ![zero API cost by default](https://img.shields.io/badge/API%20cost-%240%20by%20default-brightgreen)
 
 Everyone can see how *full* their context is. Nobody can see whether it has gone
@@ -16,6 +16,10 @@ tier**. The first three detectors run entirely locally; the contradiction
 detector is opt-in and off by default (and, when you turn it on, runs on your own
 API key or a local model).
 
+<p align="center">
+  <img src="./docs/assets/context-health-setup.gif" alt="Setting up context-health and the color-coded health signal appearing in the statusline" width="720">
+</p>
+
 > Originally framed as five failure modes (Breunig's poisoning/distraction/
 > confusion/clash plus goal-drift). Research showed **clash and poisoning collapse
 > to the same local computation** — contradiction detection — so they're merged
@@ -23,7 +27,7 @@ API key or a local model).
 > false-alarm-prone heuristics. Distraction, confusion, and goal-drift each keep a
 > distinct, independently-calculable signal.
 
-> **Status: v0.1.3 — all four detectors shipped and working.** Distraction,
+> **Status: v0.1.5 — all four detectors shipped and working.** Distraction,
 > confusion, and goal-drift run locally with **zero API cost**; the opt-in
 > contradiction detector runs on your own key or a local model. Backed by an
 > **eval harness** (measured precision/recall, not just token counts),
@@ -99,7 +103,8 @@ To remove the statusline later, run the same script with `unsetup-statusline`
 and statusline, and [`uv`](https://docs.astral.sh/uv/) for the Phase 2 worker.
 The worker's Python environment is created and managed automatically by `uv` in
 an isolated `.venv` — no global installs, no manual setup. The embedding model
-downloads once (~90 MB) on first use, after which the tool is fully offline. If
+downloads once (~67 MB, quantized ONNX) on first use, after which the tool is
+fully offline. If
 `uv` or the model is unavailable, goal-drift simply stays quiet; distraction,
 confusion, and the corrected context math keep working with zero dependencies.
 
@@ -146,6 +151,39 @@ context-health/
 The worker reads the raw signals the Node hooks write, computes drift out of
 band, and writes `computed.goalDrift` back — the two languages share the state
 file (and its cross-process lock) but never call each other directly.
+
+---
+
+## Cost, data, and footprint
+
+**Tokens.** In steady state the plugin adds **zero** tokens to your context. The
+five hooks and the statusline only read and write a local file; none of them
+inject text into the conversation, and the statusline is a display surface, not
+model context. Two paths are deliberate exceptions, each a single line: a
+**one-time** first-run nudge if you haven't wired the statusline yet, and a
+**red-transition alert** the worker emits when a session first crosses into red
+(and, *only* if you've enabled the opt-in contradiction detector, its red alert
+too). Both are injected into context by design so the model can react — that's
+the whole point of a precision-first signal that stays silent until something is
+actually wrong.
+
+**Money.** `$0` by default. The only component that can ever spend is the opt-in
+contradiction detector — off by default and, when on, running on **your own**
+Claude key or a **local** model. Never a tier billed by this plugin.
+
+**What leaves your machine.** Nothing, for the three default detectors —
+goal-drift embeds locally with FastEmbed and makes no network call. The single
+exception is the opt-in **BYOK** contradiction judge: when enabled, at most once
+every 3 turns it sends your **recent user prompts** (last 8, capped at ~4000
+chars each), **recent tool names, and a tool-parameter signature** to the
+Anthropic API under your own credentials. The **local** judge
+(`localhost:11434`) sends nothing off-box.
+
+**Resources.** The background worker polls the state file every **1.5 s**
+(tunable via `pollIntervalSeconds`) and only does embedding work when a turn has
+actually advanced — otherwise the tick is a cheap file read. It keeps the ~67 MB
+model resident for the session so it never reloads; the hooks and statusline
+never load the model at all.
 
 ---
 
@@ -270,6 +308,39 @@ transcript/tool output is treated as untrusted text, never executed.
   commands, and the opt-in **contradiction** detector (LLM-judge on your own key
   or a local model, off by default).
 - **Phase 4 — reach**: desktop-app port, optional MCP companion.
+
+## Troubleshooting
+
+- **Statusline doesn't appear after setup.** Wiring writes your settings, but a
+  session already running won't pick it up — restart Claude Code or open a new
+  session.
+- **`uv` not found.** The worker (and goal-drift) needs
+  [`uv`](https://docs.astral.sh/uv/). Install it and restart; distraction,
+  confusion, and the corrected context math keep working without it.
+- **Model won't download (offline / firewall).** First run fetches the ~67 MB
+  model once. If it can't reach the network, goal-drift simply stays quiet and
+  the other detectors keep working — retry when you're back online.
+- **Setup reports it can't find the data path.** `/context-health:setup-statusline`
+  needs Claude Code to supply `CLAUDE_PLUGIN_DATA`. On versions that don't export
+  it, setup no-ops with a message instead of wiring anything — re-run it on a
+  current Claude Code.
+
+## Uninstall & on-disk files
+
+`/plugin uninstall context-health@context-health` unregisters the hooks and
+worker but leaves a few files behind. To fully clean up:
+
+- **Statusline wiring** — run the setup script with `unsetup-statusline` (the
+  setup command prints the exact path); it restores your backed-up
+  `~/.claude/settings.json`.
+- **Shared state** — `~/.claude/context-health-state.json`
+- **Your tuned config**, if you created one — `~/.claude/context-health-config.json`
+- **Materialized statusline copy + first-run flag** — the `current/` folder and
+  the sibling `.setup-nudged` file under the plugin's data dir
+  (`<CLAUDE_PLUGIN_DATA>`).
+- **Embedding model (~67 MB)**, optional — it lives in **FastEmbed's own default
+  cache** (under your system temp / `HF_HOME`, not under `~/.claude`), so remove
+  it there if you want the space back.
 
 ## Known limitations
 
