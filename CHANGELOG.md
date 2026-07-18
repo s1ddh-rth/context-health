@@ -6,7 +6,17 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.1.6] - 2026-07-17
+## [0.1.7] - 2026-07-18
+
+### Fixed
+- **The first-run "wire your statusline" nudge now survives reinstalls/upgrades.**
+  The `SessionStart` reminder was recorded with a bare `.setup-nudged` marker in
+  the DATA dir, which persists across uninstall/reinstall — so anyone who had ever
+  installed the plugin before would get **no** nudge on reinstall, and a fresh
+  install could look like it does nothing. The flag is now keyed to the plugin
+  version: an unwired user is reminded exactly once per release, while a user who
+  has wired the statusline never sees it. (Reported: reinstall showed no
+  setup-statusline prompt until `/status` happened to mention it.)
 
 ### Fixed
 - **Hooks and monitor no longer fail with `exit 127` when Node or `uv` isn't on

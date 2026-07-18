@@ -170,17 +170,24 @@ test('wireStatusline refuses to edit a settings.json that is not valid JSON', ()
   }
 });
 
-test('firstRunNudge fires once when unwired, then stays silent', () => {
+test('firstRunNudge fires once per version when unwired, then stays silent', () => {
   const dir = tmp('ch-nudge-');
   const settingsFile = path.join(dir, 'settings.json'); // absent = unwired
   const dataDir = path.join(dir, 'data');
   process.env.CONTEXT_HEALTH_CC_SETTINGS = settingsFile;
   try {
-    const first = sw.firstRunNudge({ dataDir });
+    const first = sw.firstRunNudge({ root: REPO_ROOT, dataDir });
     assert.ok(first && /setup-statusline/.test(first), 'first call should nudge');
-    const second = sw.firstRunNudge({ dataDir });
-    assert.equal(second, null, 'second call must be silent (flag recorded)');
-    assert.ok(fs.existsSync(path.join(dataDir, '.setup-nudged')));
+    const second = sw.firstRunNudge({ root: REPO_ROOT, dataDir });
+    assert.equal(second, null, 'second call must be silent (same version recorded)');
+    const flag = path.join(dataDir, '.setup-nudged');
+    assert.ok(fs.existsSync(flag));
+    // The flag records the version, not a bare sentinel, so a reinstall/upgrade
+    // (simulated by an older stamped version) re-nudges exactly once.
+    fs.writeFileSync(flag, '0.0.0', 'utf8');
+    const afterUpgrade = sw.firstRunNudge({ root: REPO_ROOT, dataDir });
+    assert.ok(afterUpgrade && /setup-statusline/.test(afterUpgrade), 'new version should re-nudge');
+    assert.equal(sw.firstRunNudge({ root: REPO_ROOT, dataDir }), null, 'silent again after re-nudge');
   } finally {
     delete process.env.CONTEXT_HEALTH_CC_SETTINGS;
   }

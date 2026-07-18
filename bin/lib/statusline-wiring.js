@@ -316,11 +316,19 @@ function firstRunNudge(opts) {
   if (!dataDir) return null;
   if (isStatuslineWired(dataDir)) return null;
 
+  // Nudge once per plugin version while still unwired. The DATA dir and this flag
+  // persist across uninstall/reinstall, so a bare "already nudged" marker would
+  // suppress the reminder forever after the very first install — meaning a
+  // reinstall or upgrade (the exact moment a user is most likely to have wiped
+  // their settings or expect a fresh setup) would silently show nothing. Keying
+  // the flag to the version re-nudges exactly once per release for anyone who
+  // still hasn't wired the statusline; wired users short-circuit above.
+  const version = readVersion(resolveRoot(opts.root)) || '0.0.0';
   const flag = path.join(dataDir, '.setup-nudged');
   try {
-    if (fs.existsSync(flag)) return null;
+    if (fs.existsSync(flag) && fs.readFileSync(flag, 'utf8').trim() === version) return null;
     fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(flag, '1', 'utf8');
+    fs.writeFileSync(flag, version, 'utf8');
   } catch (_e) {
     // If we cannot record that we nudged, stay silent rather than risk nagging
     // on every single session start.
