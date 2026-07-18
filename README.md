@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml/badge.svg)](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-![version](https://img.shields.io/badge/version-0.1.7-blue)
+![version](https://img.shields.io/badge/version-0.1.8-blue)
 ![zero API cost by default](https://img.shields.io/badge/API%20cost-%240%20by%20default-brightgreen)
 
 Everyone can see how *full* their context is. Nobody can see whether it has gone
@@ -27,7 +27,7 @@ API key or a local model).
 > false-alarm-prone heuristics. Distraction, confusion, and goal-drift each keep a
 > distinct, independently-calculable signal.
 
-> **Status: v0.1.7 — all four detectors shipped and working.** Distraction,
+> **Status: v0.1.8 — all four detectors shipped and working.** Distraction,
 > confusion, and goal-drift run locally with **zero API cost**; the opt-in
 > contradiction detector runs on your own key or a local model. Backed by an
 > **eval harness** (measured precision/recall, not just token counts),
@@ -41,15 +41,17 @@ API key or a local model).
 A statusline that beats a plain token counter:
 
 - **Corrected context fill.** The raw `used_percentage` is measured against the
-  full window, but Claude Code reserves a ~33k-token autocompact buffer you can't
-  use. We report fill against the *usable* window, so the number hits 100% exactly
+  full window, but Claude Code reserves an autocompact buffer you can't use (~33k
+  tokens on 200K models, scaled proportionally for larger windows). We report fill
+  against the *usable* window, so the number hits 100% exactly
   when autocompaction fires — not at the hard limit. The corrected number is
   always higher than the raw one, which is the honest read.
 - **Distraction detector.** Watches the recent tool-call stream for repetition
   (the "Pokémon failure mode" — the agent repeating past actions) and combines it
   with context fill. Either signal alone can warn.
-- **Confusion detector.** Flags when too many tools are active (selection accuracy
-  collapses past ~30) or the tool-error rate climbs.
+- **Confusion detector.** Flags when too many tools are active (a conservative
+  ~30-tool floor from small-model studies — Claude tolerates far more) or when the
+  tool-error rate climbs (precision-first: a couple of transient failures won't trip it).
 
 The line stays green (and shows the fill %) until a detector trips, then turns
 yellow or red, names the condition, and shows a short **evidence-based remedy

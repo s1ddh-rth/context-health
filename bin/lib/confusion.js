@@ -24,8 +24,9 @@ function detectConfusion(input, config) {
   const cfg = config || {};
   const window = Number.isFinite(cfg.recentCallWindow) && cfg.recentCallWindow > 0 ? cfg.recentCallWindow : 20;
   const toolYellow = Number.isFinite(cfg.activeToolYellow) ? cfg.activeToolYellow : 30;
-  const errYellow = Number.isFinite(cfg.toolErrorRateYellow) ? cfg.toolErrorRateYellow : 0.05;
-  const errRed = Number.isFinite(cfg.toolErrorRateRed) ? cfg.toolErrorRateRed : 0.10;
+  const errYellow = Number.isFinite(cfg.toolErrorRateYellow) ? cfg.toolErrorRateYellow : 0.10;
+  const errRed = Number.isFinite(cfg.toolErrorRateRed) ? cfg.toolErrorRateRed : 0.20;
+  const minErrors = Number.isFinite(cfg.minErrorsToFire) && cfg.minErrorsToFire > 0 ? cfg.minErrorsToFire : 3;
 
   const activeToolCount = input && Number.isFinite(input.activeToolCount) ? input.activeToolCount : 0;
   const allCalls = input && Array.isArray(input.recentCalls) ? input.recentCalls : [];
@@ -39,9 +40,15 @@ function detectConfusion(input, config) {
   }
   const toolErrorRate = total > 0 ? errorCount / total : 0;
 
+  // Transient tool failures are routine in a real session (a failed Bash, a
+  // not-yet-created file, a flaky test). Require an absolute minimum error COUNT
+  // before the rate can fire, so two unlucky calls don't paint the line red — the
+  // "cries wolf, gets disabled" outcome the precision-first design exists to avoid.
   let errSeverity = 'green';
-  if (toolErrorRate > errRed) errSeverity = 'red';
-  else if (toolErrorRate > errYellow) errSeverity = 'yellow';
+  if (errorCount >= minErrors) {
+    if (toolErrorRate > errRed) errSeverity = 'red';
+    else if (toolErrorRate > errYellow) errSeverity = 'yellow';
+  }
 
   // --- active-tool-count signal (yellow ceiling only) ---
   let toolSeverity = 'green';

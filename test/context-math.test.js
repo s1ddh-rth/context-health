@@ -78,12 +78,24 @@ test('extractWindowSize: falls back to default when absent', () => {
   assert.equal(size, 200000);
 });
 
-test('computeContextFill: uses explicit window size for the buffer proportion', () => {
-  // With a 1,000,000 window the 33k buffer is proportionally tiny.
+test('computeContextFill: autocompact reserve scales with a large window', () => {
+  // The reserve is max(33000, windowSize * 0.165). On a 1,000,000 window that is
+  // 165,000 (a flat 33k would wrongly leave 967k "usable"). usable = 835000;
+  // usedTokens = 500000; fill = 500000/835000*100 ~= 59.9
   const big = computeContextFill(
     { context_window: { used_percentage: 50, max_tokens: 1000000 } },
     DEFAULTS
   );
-  // usable = 967000; usedTokens = 500000; fill = 500000/967000*100 ~= 51.7
-  assert.ok(Math.abs(big.fillPercent - 51.71) < 0.2, `got ${big.fillPercent}`);
+  assert.ok(Math.abs(big.fillPercent - 59.88) < 0.2, `got ${big.fillPercent}`);
+  // must be more conservative (higher fill) than the old flat-33k math (~51.7)
+  assert.ok(big.fillPercent > 55, `reserve should scale up on 1M windows, got ${big.fillPercent}`);
+});
+
+test('computeContextFill: 200K behavior is unchanged by the proportional reserve', () => {
+  // At 200K the floor (33000) equals window*0.165, so the boundary identity holds.
+  const r = computeContextFill(
+    { context_window: { used_percentage: 83.5, context_window_size: 200000 } },
+    DEFAULTS
+  );
+  assert.ok(Math.abs(r.fillPercent - 100) < 0.01, `expected ~100, got ${r.fillPercent}`);
 });

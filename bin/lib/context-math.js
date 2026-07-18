@@ -19,6 +19,10 @@
 
 const FALLBACK_BUFFER = 33000;
 const FALLBACK_WINDOW = 200000;
+// The reserve as a fraction of the window. 0.165 == 33000/200000, i.e. it exactly
+// reproduces the calibrated 200K buffer while scaling the reserve up on larger
+// windows (a flat 33K is only ~3% of a 1M window and badly overstates usable space).
+const FALLBACK_RESERVE_FRACTION = FALLBACK_BUFFER / FALLBACK_WINDOW;
 
 // Field names the statusline JSON might use for the total window size, in
 // order of preference. Claude Code has shifted these across versions, so we
@@ -43,9 +47,13 @@ function extractWindowSize(input, opts = {}) {
 }
 
 function computeContextFill(input, opts = {}) {
-  const buffer = isFiniteNumber(opts.autocompactBufferTokens) && opts.autocompactBufferTokens >= 0
+  const minBuffer = isFiniteNumber(opts.autocompactBufferTokens) && opts.autocompactBufferTokens >= 0
     ? opts.autocompactBufferTokens
     : FALLBACK_BUFFER;
+  const reserveFraction = isFiniteNumber(opts.autocompactReserveFraction)
+    && opts.autocompactReserveFraction > 0 && opts.autocompactReserveFraction < 1
+    ? opts.autocompactReserveFraction
+    : FALLBACK_RESERVE_FRACTION;
 
   const cw = input && typeof input === 'object' ? input.context_window : null;
   const usedPercentage = cw ? cw.used_percentage : undefined;
@@ -55,10 +63,17 @@ function computeContextFill(input, opts = {}) {
   }
 
   const windowSize = extractWindowSize(input, opts);
-  // If the reported buffer is >= the window (a degenerate/misreported case that has
-  // occurred upstream), fall back to the full window rather than clamping usable to
-  // 1 — which would blow fillPercent up to absurd values (e.g. 1,000,000%).
-  const usableWindow = Math.max(1, windowSize > buffer ? windowSize - buffer : windowSize);
+  // The autocompact reserve scales with the window. A flat token buffer is ~16.5%
+  // of a 200K window but only ~3% of a 1M window, which overstated usable space on
+  // large-context models (autocompact there fires far earlier than windowSize-33000
+  // implies). Take the larger of the configured floor and the proportional reserve:
+  // exact at the calibrated 200K size, conservative as the window grows. Large-window
+  // reserves are approximate (see docs/METHODOLOGY.md) and tunable via config.
+  const reserve = Math.max(minBuffer, Math.round(windowSize * reserveFraction));
+  // If the reserve is >= the window (a degenerate/misreported case that has occurred
+  // upstream), fall back to the full window rather than clamping usable to 1 — which
+  // would blow fillPercent up to absurd values (e.g. 1,000,000%).
+  const usableWindow = Math.max(1, windowSize > reserve ? windowSize - reserve : windowSize);
   const usedTokens = (usedPercentage / 100) * windowSize;
 
   const fillPercentRaw = (usedTokens / usableWindow) * 100;
@@ -77,4 +92,4 @@ function computeContextFill(input, opts = {}) {
   };
 }
 
-module.exports = { computeContextFill, extractWindowSize, FALLBACK_BUFFER, FALLBACK_WINDOW };
+module.exports = { computeContextFill, extractWindowSize, FALLBACK_BUFFER, FALLBACK_WINDOW, FALLBACK_RESERVE_FRACTION };

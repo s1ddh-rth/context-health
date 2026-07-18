@@ -4,7 +4,9 @@
   "enabled": true,
   "muted": false,
   "context": {
+    "$note": "The reserve used is max(autocompactBufferTokens, windowSize * autocompactReserveFraction). 0.165 = 33000/200000, so it is exact at 200K and scales up on larger windows (a flat 33K is only ~3% of a 1M window and overstates usable space). Claude Code's real 1M autocompact point is not officially published; raise autocompactReserveFraction if your model compacts earlier. See docs/METHODOLOGY.md.",
     "autocompactBufferTokens": 33000,
+    "autocompactReserveFraction": 0.165,
     "defaultWindowSize": 200000
   },
   "detectors": {
@@ -12,26 +14,30 @@
       "$note": "contextFill bands are % of the USABLE window (after the autocompact buffer), reaching 100 at auto-compaction. yellow 50 aligns with RULER-style ~50% effective-context findings. red 85 is provisional for Claude's strong long-context models (degradation research clusters at 40-70% for smaller models, but a false alarm is worse than a miss here); calibrate against Claude-specific data in the eval harness. The '60-70% dumb zone' / 'compact at 50%' figures are practitioner heuristics, not benchmarked for Claude 200K.",
       "enabled": true,
       "recentToolCallWindow": 20,
+      "minRecentToolCalls": 5,
       "repetitionRateYellow": 0.30,
       "repetitionRateRed": 0.50,
       "contextFillYellow": 50,
       "contextFillRed": 85
     },
     "confusion": {
-      "$note": "recentCallWindow is 20 so the 0.05 error-rate yellow is reachable: with a 10-call window the smallest non-zero rate is 0.10, which made a single tool error trip yellow. activeToolYellow 30 is a conservative small-model floor (frontier models tolerate more); calibrate per-model in the eval harness.",
+      "$note": "Error signal is precision-first: it needs at least minErrorsToFire (3) errors AND rate>threshold before firing, so routine transient failures (a failed Bash, a not-yet-created file, a flaky test) don't paint the line red. Over a 20-call window: <3 errors green; 3-4 errors (>=0.15) yellow; 5+ (>0.20) red. activeToolYellow 30 is a conservative small-model floor — frontier models tolerate far more (often 50-100+); calibrate per-model in the eval harness.",
       "enabled": true,
       "recentCallWindow": 20,
       "activeToolYellow": 30,
-      "toolErrorRateYellow": 0.05,
-      "toolErrorRateRed": 0.10
+      "minErrorsToFire": 3,
+      "toolErrorRateYellow": 0.10,
+      "toolErrorRateRed": 0.20
     },
     "goalDrift": {
       "enabled": true,
       "rollingActivityTurns": 5,
+      "maxActivityToolCalls": 10,
       "minTurnsBeforeFiring": 3,
       "$calibration": "Calibrated from eval/drift-pairs.json (worker/eval_drift.py): on-goal cosine floor ~0.559, drifted mean ~0.450. bge-small-en-v1.5 scores cluster in [0.6,1.0], so absolute thresholds sit low by design. yellow 0.55 is just under the on-goal floor => 0 false alarms, 93% recall; red 0.50 catches clearly-drifted pairs at the same 0 false alarms (0.45 was too low to fire usefully). The 28-pair corpus uses obvious drift; recalibrate with subtle in-domain drift pairs in the eval harness before trusting these further.",
       "cosineSimilarityYellow": 0.55,
       "cosineSimilarityRed": 0.50,
+      "$weakAnchorNote": "weakAnchorMinTokens is measured in whitespace-separated WORDS (~15-20 BPE tokens), not model tokens.",
       "weakAnchorMinTokens": 12,
       "weakAnchorThresholdPenalty": 0.05
     },

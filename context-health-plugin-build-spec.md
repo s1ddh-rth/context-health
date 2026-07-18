@@ -40,7 +40,7 @@ The honest framing, and it helps the product rather than hurting it, is that the
 - Anthropic's position is that LLMs have a finite attention budget that depletes with every token, because the transformer creates n-squared pairwise relationships, so attention gets stretched thin as length grows. Their remedies are compaction, structured note-taking, and sub-agent architectures. (Effective context engineering for AI agents, Sep 2025.)
 - Chroma's Context Rot report is the empirical backbone. Across 18 frontier models including the 1M-token ones, every single model degraded with length. Accuracy dropped 30-plus points when the relevant fact sat mid-context, with a 7.9 percent floor loss from length alone. A counterintuitive finding is that coherent document structure hurt more than shuffled distractors. A practical cap that teams now ship with is roughly 25 to 30 percent of the advertised window, since RULER-style checks put usable context nearer 50 to 65 percent of advertised.
 - Google DeepMind supplied the clearest distraction anecdote. The Pokemon-playing Gemini agent started repeating actions from history once context passed about 100k tokens, despite a 1M-plus window.
-- The confusion threshold has a number. Above roughly 30 tools, descriptions overlap and selection accuracy collapses. One study showed Llama 3.1 8b failing with 46 tools but succeeding with 19.
+- The confusion threshold has a number, but treat it as a conservative floor, not a law. A single anecdote (a *quantized* Llama 3.1 8b on an edge device) failed with 46 tools but succeeded with 19; the figure "30" does not appear in that source and does not generalize to frontier models like Claude, which tolerate far more (often 50–100+). See `docs/METHODOLOGY.md`.
 - Drift has measured incidence. One 2026 analysis found semantic drift in nearly half of multi-agent workflows by around 600 interactions, while task drift dropped to near-zero with the right design.
 
 ---
@@ -110,7 +110,7 @@ Ship them in this order. The ordering is deliberate, cheapest and most certain f
 
 **Distraction detector.** Mostly a length-and-repetition signal. Context percentage comes straight from the statusline JSON. Add an n-gram or action-repetition check over the recent transcript and flag when tool calls or actions start repeating. This catches the Pokemon failure mode with zero API cost. Default warning band around the point where usable context is thinning, informed by the 25 to 30 percent effective-window research rather than the raw window size.
 
-**Confusion detector.** Mostly structural. Count active tools against the roughly 30-tool threshold and watch the tool-call stream for wrong-tool selection and malformed parameters. No semantic model needed.
+**Confusion detector.** Mostly structural. Count active tools against a conservative ~30-tool floor (a small-model heuristic, not a Claude-calibrated threshold — see `docs/METHODOLOGY.md`) and watch the tool-call stream for wrong-tool selection and malformed parameters. No semantic model needed.
 
 ### Tier B — free, local, small embedding model. Ship second.
 
@@ -243,7 +243,7 @@ These are hard-won failure modes from people who built context tooling, formatti
 
 - CLAUDE.md is advisory, hooks are deterministic. The model treats CLAUDE.md as context it may or may not apply, so anything that must always happen goes in a hook, not in prose.
 - Keep it small or it gets ignored. Frontier models reliably follow on the order of 150 to 200 instructions and Claude Code's own system prompt already spends some of that budget. Teams that ship this well keep CLAUDE.md well under a few hundred lines and move detail into skills. Put only what the model would otherwise get wrong.
-- The 60 to 70 percent dumb zone is real and is our best validation. Practitioners report that once context passes 60 to 70 percent, the model starts ignoring instructions and making basic errors, and they now compact manually at 50 percent rather than waiting for auto-compaction. That is exactly the pain this tool surfaces, so our default yellow band should sit around there.
+- The 60 to 70 percent "dumb zone" is practitioner folklore, not a benchmarked finding, and we do NOT treat it as validation (see `docs/METHODOLOGY.md`). Practitioners report that once context passes 60 to 70 percent the model starts ignoring instructions and making basic errors, and some compact manually at 50 percent rather than waiting for auto-compaction. It is a directional hint for the yellow band only; the real thresholds come from the eval harness, not this anecdote.
 
 ---
 

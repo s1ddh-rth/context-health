@@ -65,6 +65,20 @@ test('distraction: only the most recent window is considered', () => {
   assert.equal(r.severity, 'red');
 });
 
+test('distraction: too few calls to judge repetition => green (min-sample guard)', () => {
+  // 3 identical early calls would be 67% repetition, but n=3 is below minRecentToolCalls
+  // (default 5), so the repetition signal must not escalate past green.
+  const r = detectDistraction({ recentToolCalls: repeat('x', 3), fillPercent: 10 }, CONFIG);
+  assert.equal(r.severity, 'green');
+  assert.ok(r.repetitionRate > 0.5, 'rate is still computed/reported, just not fired on');
+});
+
+test('distraction: repetition fires once the window has enough calls', () => {
+  // 5 identical calls meets the min-sample floor => rate 0.8 => red.
+  const r = detectDistraction({ recentToolCalls: repeat('x', 5), fillPercent: 10 }, CONFIG);
+  assert.equal(r.severity, 'red');
+});
+
 test('distraction: empty calls + unknown fill => green, no crash', () => {
   const r = detectDistraction({ recentToolCalls: [], fillPercent: null }, CONFIG);
   assert.equal(r.severity, 'green');

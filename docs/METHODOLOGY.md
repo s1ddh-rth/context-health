@@ -38,24 +38,33 @@ items in context).
 **What.** How full the context window is — but measured against the window you can
 actually *use*, not the hard limit.
 
-**How.** Claude Code reserves a fixed **autocompact buffer** (~33,000 tokens as of
-early 2026) at the top of the window; when used tokens reach `windowSize − buffer`,
-auto-compaction fires. The statusline reports `used_percentage` against the *full*
-window [10], so we rebase:
+**How.** Claude Code reserves an **autocompact buffer** near the top of the window;
+when used tokens reach `windowSize − reserve`, auto-compaction fires. The statusline
+reports `used_percentage` against the *full* window [10], so we rebase against the
+*usable* window:
 
 ```
+reserve     = max(autocompactBufferTokens, windowSize × autocompactReserveFraction)
 usedTokens  = (used_percentage / 100) × windowSize
-fillPercent = usedTokens / (windowSize − buffer) × 100
+fillPercent = usedTokens / (windowSize − reserve) × 100
 ```
 
-`fillPercent` reaches **100% exactly at the auto-compaction boundary**, and is
-always higher than the raw `used_percentage` — the honest read.
+The reserve **scales with the window** instead of being a flat constant. The default
+`autocompactReserveFraction` is `0.165` (= 33,000 / 200,000), so on a 200K model the
+reserve is exactly ~33,000 tokens and `fillPercent` reaches **100% at the
+auto-compaction boundary** (and is always higher than the raw `used_percentage` — the
+honest read). On larger windows the proportional reserve avoids a flat 33k badly
+overstating usable space.
 
-**Why the buffer.** Confirmed community-observed value; it was ~45k before early
-2026 and changed silently, so it's treated as a version-pinned constant to
-re-verify per Claude Code release. Note `used_percentage` is computed from input
-tokens only (it excludes the current turn's output) [10], so fill is a close but
-slightly optimistic proxy.
+**Why the buffer, and its limits.** The ~33k figure is community-observed for 200K
+models (it was ~45k before early 2026 and changed silently, so it's a version-pinned
+constant to re-verify per release). It is **not** officially published, and on
+1M-context Opus the real reserve is far larger — auto-compaction has been observed to
+fire near ~400K used (~40% of the window; see claude-code issue #43989), so the default
+16.5% proportional reserve is a genuine improvement over a flat 33k but still
+**understates** the 1M reserve. Raise `autocompactReserveFraction` for such models.
+Also, `used_percentage` counts input tokens only (it excludes the current turn's
+output) [10], so fill is a close but slightly optimistic proxy.
 
 **Bands:** yellow **50%**, red **85%** (of the usable window). Yellow at ~50% aligns
 with RULER's finding that effective context is roughly half the advertised size [3]

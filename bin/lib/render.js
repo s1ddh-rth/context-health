@@ -40,7 +40,9 @@ function colorize(text, color, enabled) {
 
 function fillLabel(fillPercent) {
   if (!Number.isFinite(fillPercent)) return null;
-  return `${Math.round(fillPercent)}%`;
+  // Clamp the DISPLAY to 100 — internally fillPercent can exceed 100 (past the
+  // autocompact boundary) to preserve severity ordering, but "120%" reads as a bug.
+  return `${Math.round(Math.min(100, fillPercent))}%`;
 }
 
 function render(result, opts) {

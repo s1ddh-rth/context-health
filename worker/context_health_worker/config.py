@@ -19,6 +19,7 @@ BUILT_IN_DEFAULTS = {
         "goalDrift": {
             "enabled": True,
             "rollingActivityTurns": 5,
+            "maxActivityToolCalls": 10,
             "minTurnsBeforeFiring": 3,
             # Calibrated from eval/drift-pairs.json (eval_drift.py): on-goal floor
             # ~0.559, drifted mean ~0.450. yellow 0.55 = just under the on-goal

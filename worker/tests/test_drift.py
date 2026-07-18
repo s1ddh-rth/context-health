@@ -2,20 +2,24 @@
 
 import math
 
+from context_health_worker.config import BUILT_IN_DEFAULTS
 from context_health_worker.drift import (
     cosine_similarity,
     evaluate_drift,
     build_activity_text,
 )
 
-CONFIG = {
-    "rollingActivityTurns": 5,
-    "minTurnsBeforeFiring": 3,
-    "cosineSimilarityYellow": 0.70,
-    "cosineSimilarityRed": 0.50,
-    "weakAnchorMinTokens": 12,
-    "weakAnchorThresholdPenalty": 0.05,
-}
+# Drive the tests from the SHIPPED thresholds, not a hand-picked copy, so the suite
+# actually guards production behavior (it previously pinned a retired 0.70 yellow
+# and asserted classifications the shipped 0.55 would not make).
+CONFIG = dict(BUILT_IN_DEFAULTS["detectors"]["goalDrift"])
+
+
+def test_config_tracks_shipped_thresholds():
+    # Guardrail: if the shipped defaults move, this test (and the ones below) must
+    # be revisited rather than silently passing on stale numbers.
+    assert CONFIG["cosineSimilarityYellow"] == 0.55
+    assert CONFIG["cosineSimilarityRed"] == 0.50
 
 
 # --- cosine_similarity ---
@@ -49,7 +53,8 @@ def test_drift_high_similarity_is_green():
 
 
 def test_drift_below_yellow_is_yellow():
-    r = evaluate_drift(0.65, turn_count=5, config=CONFIG)
+    # between red (0.50) and yellow (0.55) => yellow under the shipped thresholds
+    r = evaluate_drift(0.52, turn_count=5, config=CONFIG)
     assert r["severity"] == "yellow"
 
 
@@ -66,16 +71,16 @@ def test_drift_holds_fire_until_min_turns():
 
 
 def test_drift_exactly_at_yellow_threshold_is_green():
-    # fire when similarity < threshold (strict), so exactly 0.70 is still green
-    r = evaluate_drift(0.70, turn_count=5, config=CONFIG)
+    # fire when similarity < threshold (strict), so exactly 0.55 is still green
+    r = evaluate_drift(0.55, turn_count=5, config=CONFIG)
     assert r["severity"] == "green"
 
 
 def test_weak_anchor_makes_firing_harder():
-    # penalty lowers the thresholds so a weak anchor cuts false alarms:
-    # 0.66 would be yellow with a strong anchor, but green with a weak one
-    strong = evaluate_drift(0.66, turn_count=5, config=CONFIG, weak_anchor=False)
-    weak = evaluate_drift(0.66, turn_count=5, config=CONFIG, weak_anchor=True)
+    # penalty (0.05) lowers the thresholds so a weak anchor cuts false alarms:
+    # 0.52 is yellow with a strong anchor (< 0.55), but green with a weak one (>= 0.50)
+    strong = evaluate_drift(0.52, turn_count=5, config=CONFIG, weak_anchor=False)
+    weak = evaluate_drift(0.52, turn_count=5, config=CONFIG, weak_anchor=True)
     assert strong["severity"] == "yellow"
     assert weak["severity"] == "green"
 

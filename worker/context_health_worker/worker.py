@@ -65,7 +65,7 @@ def compute_session_drift(session, embedder, drift_cfg, goal_cache):
     activity = build_activity_text(
         session,
         max_prompts=int(_num(drift_cfg.get("rollingActivityTurns"), 5)),
-        max_tools=10,
+        max_tools=int(_num(drift_cfg.get("maxActivityToolCalls"), 10)),
         exclude=goal_text,  # don't compare the goal prompt against itself
     )
     if not activity:

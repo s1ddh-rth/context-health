@@ -48,14 +48,20 @@
     "expected": { "confusion": "green", "overall": "green" }
   },
   {
+    "name": "confusion-error-transient-green",
+    "build": { "toolResults": [{ "error": true, "repeat": 2 }, { "error": false, "repeat": 18 }] },
+    "liveMetrics": { "fillPercent": 10 },
+    "expected": { "confusion": "green", "overall": "green" }
+  },
+  {
     "name": "confusion-error-yellow",
-    "build": { "toolResults": [{ "error": true, "repeat": 1 }, { "error": false, "repeat": 9 }] },
+    "build": { "toolResults": [{ "error": true, "repeat": 3 }, { "error": false, "repeat": 17 }] },
     "liveMetrics": { "fillPercent": 10 },
     "expected": { "confusion": "yellow", "overall": "yellow" }
   },
   {
     "name": "confusion-error-red",
-    "build": { "toolResults": [{ "error": true, "repeat": 3 }, { "error": false, "repeat": 7 }] },
+    "build": { "toolResults": [{ "error": true, "repeat": 5 }, { "error": false, "repeat": 15 }] },
     "liveMetrics": { "fillPercent": 10 },
     "expected": { "confusion": "red", "overall": "red" }
   },
