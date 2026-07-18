@@ -39,7 +39,22 @@
       "cosineSimilarityRed": 0.50,
       "$weakAnchorNote": "weakAnchorMinTokens is measured in whitespace-separated WORDS (~15-20 BPE tokens), not model tokens.",
       "weakAnchorMinTokens": 12,
-      "weakAnchorThresholdPenalty": 0.05
+      "weakAnchorThresholdPenalty": 0.05,
+      "shadow": {
+        "$note": "Phase-3 CANDIDATE drift signal (research-backed 2024-2026): per-session one-sided robust modified z-score (median/MAD, finite-sample scale) of per-USER-turn cosine to the goal, gated by goal-keyword overlap, with persistence + an absolute floor for cold-start. Fixes the absolute-cutoff + pooled-blob flaws of the shipped detector. LOGGED to computed.goalDriftShadow for calibration on real sessions; does NOT drive the statusline yet. Thresholds are provisional pending the Phase-3 eval harness.",
+        "enabled": true,
+        "windowTurns": 4,
+        "maxSeries": 40,
+        "zThreshold": 3.5,
+        "zThresholdColdStart": 4.5,
+        "zRedMargin": 1.5,
+        "absoluteFloor": 0.35,
+        "baselineMinTurns": 3,
+        "persistenceTurns": 2,
+        "minTurnsBeforeFiring": 3,
+        "lexicalOverlapDropThreshold": 0.5,
+        "requireLexicalAgreement": true
+      }
     },
     "contradiction": {
       "$comment": "Merged clash+poisoning. Opt-in, OFF by default. Not a paid tier: when enabled it uses the user's own Claude API key or a local LLM for real contradiction/NLI detection. Zero cost until the user turns it on. Lands in Phase 3.",

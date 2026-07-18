@@ -26,7 +26,15 @@ MAX_GOAL_CACHE = 64
 from . import state_io
 from .config import load_config
 from .contradiction import evaluate_contradiction
-from .drift import build_activity_text, cosine_similarity, evaluate_drift
+from .drift import (
+    GOAL_TRUNCATION_LEN,
+    build_activity_text,
+    cosine_similarity,
+    evaluate_drift,
+    evaluate_drift_shadow,
+    extract_goal_keywords,
+    lexical_overlap,
+)
 from .embedder import Embedder
 from .judge import make_judge
 
@@ -87,6 +95,90 @@ def compute_session_drift(session, embedder, drift_cfg, goal_cache):
     result = evaluate_drift(similarity, turns_since_goal, drift_cfg, weak_anchor)
     # round for a stable, compact state file
     result["similarity"] = round(float(similarity), 4)
+
+    # Shadow-mode (Phase-3 candidate) signal: computed and attached as `_shadow`,
+    # which run_once persists under computed.goalDriftShadow. It NEVER drives the
+    # statusline (that reads goalDrift). Opt-in via goalDrift.shadow.enabled so the
+    # extra per-turn embeds don't run unless configured (shipped on in settings.json).
+    shadow_cfg = drift_cfg.get("shadow") or {}
+    if shadow_cfg.get("enabled") is True:
+        # Shadow is a diagnostic: it must NEVER affect the shipped goalDrift signal,
+        # so isolate any failure here rather than letting it abort the goalDrift write.
+        try:
+            prev_shadow = (session.get("computed") or {}).get("goalDriftShadow")
+            shadow = _compute_shadow(session, goal_vec, goal_text, embedder, shadow_cfg,
+                                     prev_shadow, turns_since_goal, turn)
+            if shadow is not None:
+                result["_shadow"] = shadow
+        except Exception:
+            pass
+    return result
+
+
+def _recent_user_prompts(session, exclude, max_n):
+    """Recent USER prompts only (no tool calls), with the goal anchor excluded — the
+    intent channel. Pooling prompts + tool-call strings dilutes intent, so the shadow
+    signal compares the goal against user turns, kept separate."""
+    prompts = (session or {}).get("prompts") or []
+    ex = str(exclude) if exclude else None
+    trunc = ex is not None and len(ex) >= GOAL_TRUNCATION_LEN
+    out = []
+    for p in prompts:
+        sp = str(p)
+        if ex is not None and (sp == ex or (trunc and sp.startswith(ex))):
+            continue
+        out.append(sp)
+    return out[-max_n:] if max_n and max_n > 0 else out
+
+
+def _mean_vec(vecs):
+    if not vecs:
+        return None
+    dim = len(vecs[0])
+    n = len(vecs)
+    return [sum(v[i] for v in vecs) / n for i in range(dim)]
+
+
+def _compute_shadow(session, goal_vec, goal_text, embedder, shadow_cfg, prev_shadow, turns_since_goal, turn):
+    """Phase-3 candidate drift signal (logged to computed.goalDriftShadow, never the
+    UI). Embeds recent USER turns SEPARATELY and scores drift with a per-session
+    robust z-score of per-turn cosine-to-goal, gated by goal-keyword overlap. Returns
+    None when there's nothing to score or the model is unavailable."""
+    # Idempotent per turn: a monitor restart can reprocess the current turn (seen_turns
+    # is in-memory), which would double-append to the series and double-count the
+    # streak. If we already computed this turn, return the prior result unchanged.
+    if prev_shadow is not None and prev_shadow.get("lastTurn") == turn:
+        return prev_shadow
+    win = int(_num(shadow_cfg.get("windowTurns"), 4))
+    max_series = int(_num(shadow_cfg.get("maxSeries"), 40))
+    prompts = _recent_user_prompts(session, goal_text, max(1, win * 2))
+    if not prompts:
+        return None
+    vecs = []
+    for p in prompts:
+        v = embedder.embed(p)
+        if v is None:
+            return None  # model unavailable this tick
+        vecs.append(v)
+    current_sim = cosine_similarity(goal_vec, vecs[-1])
+
+    # Window-to-window semantic drop (recent centroid vs the previous window) — the
+    # sensitive detector of gradual shift; None until we have two full windows.
+    w2w = None
+    if len(vecs) >= 2 * win:
+        w2w = cosine_similarity(_mean_vec(vecs[-win:]), _mean_vec(vecs[-2 * win:-win]))
+
+    prev_series = [s for s in ((prev_shadow or {}).get("simSeries") or [])
+                   if isinstance(s, (int, float)) and not isinstance(s, bool)]
+    series = (prev_series + [round(float(current_sim), 4)])[-max_series:]
+
+    cur_lex = lexical_overlap(extract_goal_keywords(goal_text), prompts[-1])
+    prior_streak = (prev_shadow or {}).get("hitStreak") or 0
+
+    result = evaluate_drift_shadow(series, cur_lex, prior_streak, turns_since_goal, shadow_cfg, w2w)
+    result["simSeries"] = series
+    result["lexical"] = round(float(cur_lex), 3) if cur_lex is not None else None
+    result["lastTurn"] = turn
     return result
 
 
@@ -121,7 +213,10 @@ def run_once(embedder, config, goal_cache, seen_turns, last_severity,
         if drift_on and not (seen_turns.get(session_id) == turn and session_id in last_severity):
             result = compute_session_drift(session, embedder, drift_cfg, goal_cache)
             if result is not None:
+                shadow = result.pop("_shadow", None)
                 state_io.update_session(session_id, _make_computed_writer("goalDrift", result))
+                if shadow is not None:
+                    state_io.update_session(session_id, _make_computed_writer("goalDriftShadow", shadow))
                 prev = _prev_severity(session, last_severity, session_id, "goalDrift")
                 last_severity[session_id] = result["severity"]
                 if result["severity"] == "red" and prev != "red":

@@ -29,6 +29,21 @@ BUILT_IN_DEFAULTS = {
             "cosineSimilarityRed": 0.50,
             "weakAnchorMinTokens": 12,
             "weakAnchorThresholdPenalty": 0.05,
+            # Phase-3 candidate signal; logged to computed.goalDriftShadow, not the UI.
+            "shadow": {
+                "enabled": True,
+                "windowTurns": 4,
+                "maxSeries": 40,
+                "zThreshold": 3.5,
+                "zThresholdColdStart": 4.5,
+                "zRedMargin": 1.5,
+                "absoluteFloor": 0.35,
+                "baselineMinTurns": 3,
+                "persistenceTurns": 2,
+                "minTurnsBeforeFiring": 3,
+                "lexicalOverlapDropThreshold": 0.5,
+                "requireLexicalAgreement": True,
+            },
         },
         "contradiction": {
             "enabled": False,  # opt-in

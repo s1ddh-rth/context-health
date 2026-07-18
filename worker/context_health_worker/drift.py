@@ -136,3 +136,158 @@ def _num(value, default):
     if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
         return float(value)
     return default
+
+
+# --- Shadow-mode drift signal (Phase-3 candidate; logged, does NOT drive the UI) ---
+#
+# Research (2024-2026, two deep reviews) converged: an absolute cosine cutoff is
+# indefensible (anisotropy/mean-bias — Steck WWW-2024, mean-bias arXiv 2511.11041),
+# anchor-to-goal cosine misses subtle in-domain drift, and short streams (<20 turns)
+# rule out ADWIN/BOCPD/online-MMD (they need a large stationary reference). The
+# candidate is a COMPOSITE fired only on agreement + persistence:
+#   * semantic — per-turn cos(goal, user_turn), scored as a one-sided robust
+#     modified z-score (median/MAD, finite-sample scale) vs THIS session's on-goal
+#     baseline, with an absolute floor for cold-start;
+#   * lexical  — drop in goal-keyword overlap (an anisotropy-immune precision gate);
+#   * persistence — N consecutive hits before firing.
+# All pure + tunable (settings.json goalDrift.shadow). Representation change that
+# matters most: compare the goal to individual USER turns, never a pooled blob of
+# prompts + tool-call strings (that dilutes intent — arXiv 2603.21437).
+
+import re as _re
+
+_STOPWORDS = frozenset(
+    "a an the of to in on for and or but with without into onto from by at as is are be this that these "
+    "those it its your my our their we you they add fix make build create update change use using do does "
+    "can could should would will just also please help need want let set get put run code".split()
+)
+
+# Finite-sample MAD scale constants Cn (Park-Kim-Wang 2020, via Akinshin) so MAD
+# estimates sigma without the asymptotic 1.4826 under-estimating it at small n
+# (which would inflate false positives — the wrong direction for precision-first).
+_MAD_C = {3: 2.205, 4: 2.017, 5: 1.804, 6: 1.764, 7: 1.687, 8: 1.672, 9: 1.643, 10: 1.625}
+_MAD_C_INF = 1.4826
+
+
+def _median(xs):
+    s = sorted(xs)
+    n = len(s)
+    if n == 0:
+        return 0.0
+    mid = n // 2
+    return s[mid] if n % 2 else (s[mid - 1] + s[mid]) / 2.0
+
+
+def _mad_scale_constant(n):
+    return _MAD_C_INF if n >= 11 else _MAD_C.get(n, _MAD_C_INF)
+
+
+def robust_modified_zscore_drop(baseline, x):
+    """One-sided modified z-score: how far x sits BELOW the baseline sample, using
+    median + MAD with a finite-sample scale constant. Returns a non-negative drop
+    (0 when x >= median), or None when the baseline is too small (n<3) or degenerate
+    (MAD==0, e.g. tied early values — the caller falls back to the absolute floor)."""
+    vals = [v for v in (baseline or []) if isinstance(v, (int, float)) and not isinstance(v, bool)]
+    n = len(vals)
+    if n < 3:
+        return None
+    med = _median(vals)
+    mad = _median([abs(v - med) for v in vals])
+    scale = _mad_scale_constant(n) * mad
+    if scale <= 0:
+        return None
+    z = (med - x) / scale
+    return z if z > 0 else 0.0
+
+
+def extract_goal_keywords(goal_text, max_keywords=12):
+    """Salient lowercase tokens from the goal for an anisotropy-immune lexical gate:
+    words >=3 chars that aren't stopwords, plus likely identifiers (camelCase, or a
+    token with a digit/underscore). Deterministic (first-occurrence order)."""
+    if not goal_text:
+        return frozenset()
+    out, seen = [], set()
+    for t in _re.findall(r"[A-Za-z0-9_]+", str(goal_text)):
+        tl = t.lower()
+        if tl in seen:
+            continue
+        ident = any(c.isdigit() for c in t) or "_" in t or (t[:1].islower() and any(c.isupper() for c in t[1:]))
+        if ident or (len(tl) >= 3 and tl not in _STOPWORDS):
+            out.append(tl)
+            seen.add(tl)
+        if len(out) >= max_keywords:
+            break
+    return frozenset(out)
+
+
+def lexical_overlap(goal_keywords, text):
+    """Fraction of goal keywords present in text (token match, case-insensitive).
+    None when there are no keywords (gate inactive)."""
+    if not goal_keywords:
+        return None
+    toks = {t.lower() for t in _re.findall(r"[A-Za-z0-9_]+", str(text or ""))}
+    hits = sum(1 for k in goal_keywords if k in toks)
+    return hits / len(goal_keywords)
+
+
+def evaluate_drift_shadow(sim_series, current_lexical, prior_streak, turns_since_goal, config, w2w_similarity=None):
+    """Compose the SHADOW (candidate) drift severity from the persisted per-turn
+    similarity series. Pure; no model. Never drives the statusline — logged so the
+    Phase-3 harness can calibrate against real sessions.
+
+    sim_series:      per-turn cos(goal, user_turn), oldest..newest (current is last).
+    current_lexical: goal-keyword overlap for the latest turn (or None).
+    prior_streak:    consecutive prior 'hit' turns (persistence state).
+    """
+    cfg = config or {}
+    z_thresh = _num(cfg.get("zThreshold"), 3.5)
+    z_thresh_cold = _num(cfg.get("zThresholdColdStart"), 4.5)
+    z_red_margin = _num(cfg.get("zRedMargin"), 1.5)
+    abs_floor = _num(cfg.get("absoluteFloor"), 0.35)
+    baseline_min = _num(cfg.get("baselineMinTurns"), 3)
+    persistence = _num(cfg.get("persistenceTurns"), 2)
+    min_turns = _num(cfg.get("minTurnsBeforeFiring"), 3)
+    lex_drop = _num(cfg.get("lexicalOverlapDropThreshold"), 0.5)
+    require_lexical = cfg.get("requireLexicalAgreement") is not False
+
+    series = [s for s in (sim_series or []) if isinstance(s, (int, float)) and not isinstance(s, bool)]
+    if not series:
+        return {"severity": "green", "reason": "no activity", "hitStreak": 0, "current": None,
+                "z": None, "semanticHit": False, "lexicalHit": False, "w2w": None}
+
+    current = series[-1]
+    baseline = series[:-1]
+    n = len(baseline)
+    z = robust_modified_zscore_drop(baseline, current)
+
+    # Widen the bar while the baseline is thin; never fire before min_turns (early
+    # exploration must stay quiet — precision first).
+    active_thresh = z_thresh if n >= (baseline_min + 2) else z_thresh_cold
+    below_floor = current < abs_floor
+    semantic_hit = below_floor or (z is not None and z >= active_thresh)
+    lexical_hit = (current_lexical is not None and current_lexical < lex_drop)
+    fire = semantic_hit and (lexical_hit or not require_lexical)
+    if turns_since_goal is not None and turns_since_goal < min_turns:
+        fire = False
+
+    streak = (int(prior_streak) if isinstance(prior_streak, (int, float)) and not isinstance(prior_streak, bool) else 0)
+    streak = streak + 1 if fire else 0
+
+    if streak >= persistence:
+        strong = below_floor or (z is not None and z >= active_thresh + z_red_margin)
+        severity = "red" if strong else "yellow"
+        reason = f"drifting from goal ({round(current * 100)}% similar)"
+    else:
+        severity = "green"
+        reason = "on goal"
+
+    return {
+        "severity": severity,
+        "reason": reason,
+        "hitStreak": streak,
+        "current": round(float(current), 4),
+        "z": (round(float(z), 3) if z is not None else None),
+        "semanticHit": bool(semantic_hit),
+        "lexicalHit": bool(lexical_hit),
+        "w2w": (round(float(w2w_similarity), 4) if isinstance(w2w_similarity, (int, float)) and not isinstance(w2w_similarity, bool) else None),
+    }

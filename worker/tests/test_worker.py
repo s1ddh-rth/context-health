@@ -136,6 +136,40 @@ def test_run_once_writes_computed_goaldrift(state_path):
     assert len(notes) == 1  # first transition to red notifies
 
 
+def test_run_once_writes_shadow_alongside_goaldrift(state_path):
+    # With goalDrift.shadow.enabled, the candidate signal is logged to
+    # computed.goalDriftShadow WITHOUT changing the shipped goalDrift the UI reads.
+    shadow_cfg = {**DRIFT_CFG, "shadow": {"enabled": True, "windowTurns": 4,
+                  "persistenceTurns": 2, "absoluteFloor": 0.35, "minTurnsBeforeFiring": 3,
+                  "lexicalOverlapDropThreshold": 0.5, "requireLexicalAgreement": True}}
+    cfg = {"detectors": {"goalDrift": shadow_cfg}}
+    _seed(state_path, make_session())
+    goal = make_session()["goalText"]
+    emb = FakeEmbedder(goal, [1, 0], [0, 1])  # goalDrift red
+    worker.run_once(emb, cfg, {}, {}, {})
+    saved = state_io.load_state()["s1"]
+    assert saved["computed"]["goalDrift"]["severity"] == "red"  # shipped signal unchanged
+    sh = saved["computed"]["goalDriftShadow"]                    # candidate logged
+    assert "severity" in sh and "simSeries" in sh and "z" in sh and "hitStreak" in sh
+
+
+def test_shadow_is_idempotent_across_restart(state_path):
+    # A monitor restart reprocesses the current turn (fresh in-memory dicts). The
+    # shadow series/streak accumulate in state, so reprocessing must NOT double-append.
+    shadow_cfg = {**DRIFT_CFG, "shadow": {"enabled": True, "windowTurns": 4,
+                  "persistenceTurns": 2, "absoluteFloor": 0.35, "minTurnsBeforeFiring": 3,
+                  "lexicalOverlapDropThreshold": 0.5, "requireLexicalAgreement": True}}
+    cfg = {"detectors": {"goalDrift": shadow_cfg}}
+    _seed(state_path, make_session())
+    goal = make_session()["goalText"]
+    emb = FakeEmbedder(goal, [1, 0], [0, 1])
+    worker.run_once(emb, cfg, {}, {}, {})  # first pass
+    len1 = len(state_io.load_state()["s1"]["computed"]["goalDriftShadow"]["simSeries"])
+    worker.run_once(emb, cfg, {}, {}, {})  # "restart": fresh dicts, SAME turn
+    len2 = len(state_io.load_state()["s1"]["computed"]["goalDriftShadow"]["simSeries"])
+    assert len2 == len1, "reprocessing the same turn must not grow the shadow series"
+
+
 def test_run_once_notifies_red_only_on_transition(state_path):
     _seed(state_path, make_session())
     goal = make_session()["goalText"]
