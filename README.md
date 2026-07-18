@@ -81,6 +81,13 @@ statusline never load the model.
 /context-health:setup-statusline
 ```
 
+> **Requires [Node.js ≥18](https://nodejs.org/) on your `PATH`** (plus optional
+> [`uv`](https://docs.astral.sh/uv/) for the drift worker). Most setups already
+> have Node — but the standalone Claude Code installer ships none, and `nvm`/`fnm`
+> installs aren't visible to the shell that runs hooks. If Node is missing the
+> plugin degrades quietly and the statusline says so; see
+> [Prerequisites](#install) below. **Fedora:** `sudo dnf install -y nodejs uv`.
+
 The first two commands install the hooks, skills, and background worker. The
 third is a **one-time** step that puts the health signal in your statusline.
 
