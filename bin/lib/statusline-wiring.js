@@ -65,10 +65,19 @@ function launcherPath(dataDir) {
   return toForwardSlash(path.join(currentDir(dataDir), 'statusline', 'statusline.js'));
 }
 
+// The node-resolving launcher inside the stable DATA copy. Routing the statusline
+// through it (instead of a bare `node`) means a box where node is missing or off
+// the non-interactive PATH shows a one-line hint instead of a blank/broken line.
+// COPY_ITEMS includes 'bin', so ch-run.sh is always present alongside the copy.
+function runnerPath(dataDir) {
+  return toForwardSlash(path.join(currentDir(dataDir), 'bin', 'ch-run.sh'));
+}
+
 // The exact command string we write. Double-quoted so a space in the path
-// (e.g. C:/Users/John Doe/…) is handled by both Git Bash and PowerShell.
+// (e.g. C:/Users/John Doe/…) is handled by both Git Bash and PowerShell. Invoked
+// via `sh` so it degrades gracefully when node is absent (see bin/ch-run.sh).
 function ourCommand(dataDir) {
-  return 'node "' + launcherPath(dataDir) + '"';
+  return 'sh "' + runnerPath(dataDir) + '" --statusline "' + launcherPath(dataDir) + '"';
 }
 
 function readVersion(root) {

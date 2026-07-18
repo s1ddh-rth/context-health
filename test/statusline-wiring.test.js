@@ -76,8 +76,10 @@ test('launcherPath and ourCommand are Windows/Git-Bash safe (forward slashes, qu
   assert.ok(!lp.includes('\\'), 'launcher path must not contain backslashes');
   assert.match(lp, /statusline\/statusline\.js$/);
   const cmd = sw.ourCommand(dataDir);
-  assert.match(cmd, /^node "/); // double-quoted so a space in the path is safe
-  assert.ok(!cmd.includes('\\'));
+  assert.match(cmd, /^sh "/); // routed through the node-resolving launcher
+  assert.match(cmd, /ch-run\.sh" --statusline "/); // statusline mode + launcher path
+  assert.ok(cmd.includes(lp)); // ends up invoking the real renderer
+  assert.ok(!cmd.includes('\\')); // double-quoted, forward slashes: Git-Bash safe
 });
 
 test('wireStatusline writes our statusLine and preserves other keys, with a backup', () => {

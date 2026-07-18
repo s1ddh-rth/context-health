@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml/badge.svg)](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-![version](https://img.shields.io/badge/version-0.1.5-blue)
+![version](https://img.shields.io/badge/version-0.1.6-blue)
 ![zero API cost by default](https://img.shields.io/badge/API%20cost-%240%20by%20default-brightgreen)
 
 Everyone can see how *full* their context is. Nobody can see whether it has gone
@@ -27,7 +27,7 @@ API key or a local model).
 > false-alarm-prone heuristics. Distraction, confusion, and goal-drift each keep a
 > distinct, independently-calculable signal.
 
-> **Status: v0.1.5 — all four detectors shipped and working.** Distraction,
+> **Status: v0.1.6 — all four detectors shipped and working.** Distraction,
 > confusion, and goal-drift run locally with **zero API cost**; the opt-in
 > contradiction detector runs on your own key or a local model. Backed by an
 > **eval harness** (measured precision/recall, not just token counts),
@@ -99,12 +99,17 @@ session start — it never wires anything silently.
 To remove the statusline later, run the same script with `unsetup-statusline`
 (the setup command prints the exact path), or just uninstall the plugin.
 
-**Prerequisites.** Node (bundled with Claude Code's environment) for the hooks
-and statusline, and [`uv`](https://docs.astral.sh/uv/) for the Phase 2 worker.
-The worker's Python environment is created and managed automatically by `uv` in
-an isolated `.venv` — no global installs, no manual setup. The embedding model
-downloads once (~67 MB, quantized ONNX) on first use, after which the tool is
-fully offline. If
+**Prerequisites.** [**Node.js ≥18**](https://nodejs.org/) on your `PATH` for the
+hooks and statusline, and [`uv`](https://docs.astral.sh/uv/) for the Phase 2
+worker. Node is **not** bundled with the standalone Claude Code installer, so if
+you installed Claude Code that way (or via a version manager like `nvm`/`fnm`
+whose `PATH` a non-interactive hook shell doesn't see), install Node separately.
+The plugin locates Node from your `PATH` and from common install locations; if it
+genuinely can't find it, the hooks stay silent (no errors) and the statusline
+shows a one-line "install Node" hint instead of looking broken. The worker's
+Python environment is created and managed automatically by `uv` in an isolated
+`.venv` — no global installs, no manual setup. The embedding model downloads once
+(~67 MB, quantized ONNX) on first use, after which the tool is fully offline. If
 `uv` or the model is unavailable, goal-drift simply stays quiet; distraction,
 confusion, and the corrected context math keep working with zero dependencies.
 
@@ -314,9 +319,17 @@ transcript/tool output is treated as untrusted text, never executed.
 - **Statusline doesn't appear after setup.** Wiring writes your settings, but a
   session already running won't pick it up — restart Claude Code or open a new
   session.
+- **`node: command not found` / hook or monitor "exit 127".** The plugin's glue
+  runs on Node. If your shell reports Node missing, install [Node.js
+  ≥18](https://nodejs.org/) and make sure it's on `PATH` — the standalone Claude
+  Code installer doesn't bundle Node, and version managers like `nvm`/`fnm` don't
+  expose it to the non-interactive shell that runs hooks. As of v0.1.6 the plugin
+  degrades quietly when Node is absent (no exit-127 spam) and the statusline shows
+  an "install Node" hint; installing Node and restarting brings everything back.
 - **`uv` not found.** The worker (and goal-drift) needs
   [`uv`](https://docs.astral.sh/uv/). Install it and restart; distraction,
-  confusion, and the corrected context math keep working without it.
+  confusion, and the corrected context math keep working without it. A missing
+  `uv` no longer surfaces a "Monitor script failed" error — the worker just idles.
 - **Model won't download (offline / firewall).** First run fetches the ~67 MB
   model once. If it can't reach the network, goal-drift simply stays quiet and
   the other detectors keep working — retry when you're back online.

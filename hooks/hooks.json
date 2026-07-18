@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/session-start.js\""
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/ch-run.sh\" \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/session-start.js\""
           }
         ]
       },
@@ -13,7 +13,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/materialize-statusline.js\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/ch-run.sh\" \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/materialize-statusline.js\"",
             "async": true
           }
         ]
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/user-prompt-submit.js\""
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/ch-run.sh\" \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/user-prompt-submit.js\""
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/pre-tool-use.js\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/ch-run.sh\" \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/pre-tool-use.js\"",
             "async": true
           }
         ]
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/post-tool-use.js\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/ch-run.sh\" \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/post-tool-use.js\"",
             "async": true
           }
         ]
@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/stop.js\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/ch-run.sh\" \"${CLAUDE_PLUGIN_ROOT}/bin/hooks/stop.js\"",
             "async": true
           }
         ]

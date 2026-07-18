@@ -1,7 +1,7 @@
 [
   {
     "name": "context-health-worker",
-    "command": "uv run --directory \"${CLAUDE_PLUGIN_ROOT}/worker\" python -m context_health_worker.worker",
+    "command": "sh \"${CLAUDE_PLUGIN_ROOT}/worker/ch-run-worker.sh\" \"${CLAUDE_PLUGIN_ROOT}/worker\"",
     "description": "Keeps a local FastEmbed model loaded and computes goal-drift out of band; emits a one-line alert when a session drifts into the red.",
     "when": "always"
   }

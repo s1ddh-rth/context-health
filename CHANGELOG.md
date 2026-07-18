@@ -6,6 +6,31 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-07-17
+
+### Fixed
+- **Hooks and monitor no longer fail with `exit 127` when Node or `uv` isn't on
+  the hook `PATH`.** Claude Code runs hooks through a non-interactive shell that
+  doesn't source `~/.bashrc`/`nvm`/`fnm`, and the standalone Claude Code installer
+  ships no `node` at all — so on machines like a fresh Fedora box every turn spat
+  `/bin/sh: node: command not found` and the drift monitor reported "script
+  failed (exit 127)". All bundled glue now runs through a small POSIX launcher
+  (`bin/ch-run.sh`, `worker/ch-run-worker.sh`) that resolves the runtime from
+  `PATH` **and** from common install locations (nvm, fnm, volta, asdf, Homebrew,
+  `/usr/local`, `/usr/bin`, snap). When the runtime is genuinely absent the hooks
+  exit 0 **silently** (no error spam) and the monitor idles instead of crash-
+  looping — matching the plugin's "optional features stay quiet" design.
+- **Statusline degrades visibly instead of blankly.** The wired statusline command
+  is now routed through the launcher, so a box with no Node shows a one-line
+  `install Node` hint rather than an empty/broken line. Existing `node "…"` wirings
+  are recognized and self-migrate to the new form on the next
+  `/context-health:setup-statusline`.
+
+### Docs
+- Corrected the README's false "Node is bundled with Claude Code's environment"
+  claim — Node ≥18 on `PATH` is a real prerequisite — and added a troubleshooting
+  entry for `node: command not found` / `exit 127`.
+
 ## [0.1.5] - 2026-07-11
 
 ### Added
