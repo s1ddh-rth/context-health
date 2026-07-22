@@ -30,8 +30,10 @@ BUILT_IN_DEFAULTS = {
             "weakAnchorMinTokens": 12,
             "weakAnchorThresholdPenalty": 0.05,
             # Phase-3 candidate signal; logged to computed.goalDriftShadow, not the UI.
+            # OFF by default (no telemetry to collect it from users); enable in the
+            # user config to gather calibration data on your own sessions.
             "shadow": {
-                "enabled": True,
+                "enabled": False,
                 "windowTurns": 4,
                 "maxSeries": 40,
                 "zThreshold": 3.5,

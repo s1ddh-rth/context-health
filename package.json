@@ -1,6 +1,6 @@
 {
   "name": "context-health",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Context Health Detector for Claude Code — live detection of context failure modes (distraction, confusion, goal-drift, contradiction) in the statusline.",
   "type": "commonjs",
   "private": true,

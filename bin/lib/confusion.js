@@ -10,8 +10,7 @@
  *      accuracy is known to collapse past ~30 tools. Yellow only (a big tool
  *      surface is a risk, not a failure by itself).
  *   2. Tool-error rate over the recent call window — a call is an error when its
- *      output signals failure (or it names a tool not in the registry). Yellow
- *      above the low threshold, red above the high one.
+ *      output signals failure. Yellow above the low threshold, red above the high one.
  *
  * Worst signal wins. Pure function; thresholds from config. Defensive.
  */

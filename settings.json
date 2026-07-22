@@ -41,8 +41,8 @@
       "weakAnchorMinTokens": 12,
       "weakAnchorThresholdPenalty": 0.05,
       "shadow": {
-        "$note": "Phase-3 CANDIDATE drift signal (research-backed 2024-2026): per-session one-sided robust modified z-score (median/MAD, finite-sample scale) of per-USER-turn cosine to the goal, gated by goal-keyword overlap, with persistence + an absolute floor for cold-start. Fixes the absolute-cutoff + pooled-blob flaws of the shipped detector. LOGGED to computed.goalDriftShadow for calibration on real sessions; does NOT drive the statusline yet. Thresholds are provisional pending the Phase-3 eval harness.",
-        "enabled": true,
+        "$note": "Phase-3 CANDIDATE drift signal (research-backed 2024-2026): per-session one-sided robust modified z-score (median/MAD, finite-sample scale) of per-USER-turn cosine to the goal, gated by goal-keyword overlap, with persistence + an absolute floor for cold-start. Fixes the absolute-cutoff + pooled-blob flaws of the shipped detector. LOGGED to computed.goalDriftShadow; does NOT drive the statusline yet. OFF by default — there is no telemetry, so it only helps if YOU inspect your own sessions: enable it in your own ~/.claude/context-health-config.json to collect calibration data. Thresholds are provisional pending the Phase-3 eval harness.",
+        "enabled": false,
         "windowTurns": 4,
         "maxSeries": 40,
         "zThreshold": 3.5,

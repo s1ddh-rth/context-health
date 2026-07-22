@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml/badge.svg)](https://github.com/s1ddh-rth/context-health/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-![version](https://img.shields.io/badge/version-0.1.9-blue)
+![version](https://img.shields.io/badge/version-0.1.10-blue)
 ![zero API cost by default](https://img.shields.io/badge/API%20cost-%240%20by%20default-brightgreen)
 
 Everyone can see how *full* their context is. Nobody can see whether it has gone
@@ -27,7 +27,7 @@ API key or a local model).
 > false-alarm-prone heuristics. Distraction, confusion, and goal-drift each keep a
 > distinct, independently-calculable signal.
 
-> **Status: v0.1.9 — all four detectors shipped and working.** Distraction,
+> **Status: v0.1.10 — all four detectors shipped and working.** Distraction,
 > confusion, and goal-drift run locally with **zero API cost**; the opt-in
 > contradiction detector runs on your own key or a local model. Backed by an
 > **eval harness** (measured precision/recall, not just token counts),

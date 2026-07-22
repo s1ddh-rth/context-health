@@ -102,8 +102,9 @@ def compute_session_drift(session, embedder, drift_cfg, goal_cache):
     # extra per-turn embeds don't run unless configured (shipped on in settings.json).
     shadow_cfg = drift_cfg.get("shadow") or {}
     if shadow_cfg.get("enabled") is True:
-        # Shadow is a diagnostic: it must NEVER affect the shipped goalDrift signal,
-        # so isolate any failure here rather than letting it abort the goalDrift write.
+        # Shadow is a diagnostic (OFF by default; opt in via the user config). It must
+        # NEVER affect the shipped goalDrift signal, so isolate any failure here rather
+        # than letting it abort the goalDrift write.
         try:
             prev_shadow = (session.get("computed") or {}).get("goalDriftShadow")
             shadow = _compute_shadow(session, goal_vec, goal_text, embedder, shadow_cfg,
